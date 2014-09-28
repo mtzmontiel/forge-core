@@ -13,6 +13,7 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.convert.ConverterFactory;
+import org.jboss.forge.addon.convert.exception.ConverterNotFoundException;
 import org.jboss.forge.arquillian.AddonDependency;
 import org.jboss.forge.arquillian.Dependencies;
 import org.jboss.forge.arquillian.archive.ForgeArchive;
@@ -63,4 +64,18 @@ public class ConverterFactoryTest
       Converter<Boolean, Boolean> converter = converterFactory.getConverter(Boolean.class, boolean.class);
       Assert.assertEquals(Boolean.TRUE, converter.convert(Boolean.TRUE));
    }
+
+   @Test
+   public void testPrimitiveConversionFromString()
+   {
+      Converter<String, Boolean> converter = converterFactory.getConverter(String.class, boolean.class);
+      Assert.assertEquals(Boolean.TRUE, converter.convert("true"));
+   }
+
+   @Test(expected = ConverterNotFoundException.class)
+   public void testConverterNotFound()
+   {
+      converterFactory.getConverter(long.class, boolean.class);
+   }
+
 }

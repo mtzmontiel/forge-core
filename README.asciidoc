@@ -1,4 +1,4 @@
-== JBoss Forge 2.0
+== JBoss Forge 2
 
 The fastest way to build applications, share your software, and enjoy doing it.
 
@@ -65,7 +65,7 @@ If you wish to install the core addons including the shell, "Project: New", the 
     forge --install core
 ----
 
-If you only wish to install the prototype Forge 2 Shell based on link:http://aeshell.github.io/[Aesh], run the following command instead:
+If you only wish to install the Forge 2 Shell based on link:http://aeshell.github.io/[Aesh], run the following command instead:
 
 [source,cmd]
 ----
@@ -135,7 +135,7 @@ This plugin starts the Forge 2 Container and your installed addons, so you can u
 |yes
 
 |link:parser-json/README.asciidoc[Parser Json]
-|no
+|yes
 
 |link:parser-xml/README.asciidoc[Parser XML]
 |yes

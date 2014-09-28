@@ -71,7 +71,7 @@ public class NewProjectWizardImpl implements UIWizard, NewProjectWizard
    private UIInput<String> version;
 
    @Inject
-   @WithAttributes(label = "Final Name")
+   @WithAttributes(label = "Final name")
    private UIInput<String> finalName;
 
    @Inject
@@ -83,11 +83,11 @@ public class NewProjectWizardImpl implements UIWizard, NewProjectWizard
    private UIInput<Boolean> overwrite;
 
    @Inject
-   @WithAttributes(label = "Project Type:", required = true)
+   @WithAttributes(label = "Project type", required = true)
    private UISelectOne<ProjectType> type;
 
    @Inject
-   @WithAttributes(label = "Build System:", required = true)
+   @WithAttributes(label = "Build system", required = true)
    private UISelectOne<ProjectProvider> buildSystem;
 
    @Override
@@ -388,7 +388,7 @@ public class NewProjectWizardImpl implements UIWizard, NewProjectWizard
             MetadataFacet metadataFacet = project.getFacet(MetadataFacet.class);
             metadataFacet.setProjectName(named.getValue());
             metadataFacet.setProjectVersion(version.getValue());
-            metadataFacet.setTopLevelPackage(topLevelPackage.getValue());
+            metadataFacet.setProjectGroupName(topLevelPackage.getValue());
 
             PackagingFacet packagingFacet = project.getFacet(PackagingFacet.class);
             if (finalName.hasValue())
