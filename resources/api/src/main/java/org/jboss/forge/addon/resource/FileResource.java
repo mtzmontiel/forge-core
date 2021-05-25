@@ -1,6 +1,13 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.resource;
 
 import java.io.File;
+import java.nio.file.Path;
 
 import org.jboss.forge.addon.resource.monitor.ResourceMonitor;
 
@@ -108,10 +115,100 @@ public interface FileResource<T extends FileResource<T>> extends Resource<File>,
    /**
     * Get the last modified time-stamp of this resource.
     */
-   public long getLastModified();
+   long getLastModified();
 
    /**
     * Set the last modified time-stamp of this resource.
     */
-   public void setLastModified(long currentTimeMillis);
+   void setLastModified(long currentTimeMillis);
+
+   /**
+    * Move this {@link Resource} to the given {@link FileResource}
+    */
+   void moveTo(FileResource<?> target);
+
+   /**
+    * Sets a file as writable
+    */
+   default void setWritable(boolean writable)
+   {
+      setWritable(writable, true);
+   }
+
+   /**
+    * Sets a file as writable
+    */
+   void setWritable(boolean writable, boolean ownerOnly);
+
+   /**
+    * Sets a file as readable
+    */
+   default void setReadable(boolean readable)
+   {
+      setReadable(readable, true);
+   }
+
+   /**
+    * Sets a file as readable
+    */
+   void setReadable(boolean readable, boolean owner);
+
+   /**
+    * Sets a file as executable
+    */
+   default void setExecutable(boolean executable)
+   {
+      setExecutable(executable, true);
+   }
+
+   /**
+    * Sets a file as executable
+    */
+   void setExecutable(boolean executable, boolean owner);
+
+   /**
+    * Resolve a given resource based on its path
+    *
+    * @param type
+    * @param path
+    * @return <code>null</code> if no resource could be resolved for the given object.
+    */
+   Resource<File> resolve(final String path);
+
+   /**
+    * Resolve a given resource based on its path
+    *
+    * @param type
+    * @param path
+    * @return <code>null</code> if no resource could be resolved for the given object.
+    */
+   <TYPE extends Resource<File>> TYPE resolve(final Class<TYPE> type, final String path);
+
+   /**
+    * Resolve a {@link FileResource} from a given name.
+    *
+    * Implementations usually call {@link Path#resolve(Path)}
+    *
+    * @param class
+    * @param name
+    */
+   @SuppressWarnings("unchecked")
+   default FileResource<?> resolveAsFile(String name) throws ResourceException
+   {
+      return resolve(FileResource.class, name);
+   }
+
+   /**
+    * Resolve a {@link DirectoryResource} from a given name.
+    *
+    * Implementations usually call {@link Path#resolve(Path)}
+    *
+    * @param class
+    * @param name
+    */
+   default DirectoryResource resolveAsDirectory(String name) throws ResourceException
+   {
+      return resolve(DirectoryResource.class, name);
+   }
+
 }

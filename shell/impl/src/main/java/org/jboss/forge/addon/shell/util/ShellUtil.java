@@ -1,13 +1,10 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.util;
-
-import java.util.regex.Pattern;
 
 import org.jboss.aesh.terminal.Color;
 import org.jboss.aesh.terminal.TerminalColor;
@@ -15,6 +12,7 @@ import org.jboss.aesh.terminal.TerminalString;
 import org.jboss.forge.addon.parser.java.resources.JavaFieldResource;
 import org.jboss.forge.addon.parser.java.resources.JavaMethodResource;
 import org.jboss.forge.addon.resource.FileResource;
+import org.jboss.forge.addon.ui.util.Commands;
 
 /**
  * Shell Utilities
@@ -23,19 +21,38 @@ import org.jboss.forge.addon.resource.FileResource;
  */
 public class ShellUtil
 {
-
-   private static final Pattern WHITESPACES = Pattern.compile("\\W+");
-   private static final Pattern COLONS = Pattern.compile("\\:");
-
    /**
-    * "Shellifies" a name (that is, makes the name shell-friendly) by replacing spaces with "-" and removing colons
-    *
+    * Shellifies a command name
+    * 
     * @param name
     * @return
     */
-   public static String shellifyName(String name)
+   public static String shellifyCommandName(String name)
    {
-      return COLONS.matcher(WHITESPACES.matcher(name.trim()).replaceAll("-")).replaceAll("");
+      return Commands.shellifyCommandName(name);
+   }
+
+   /**
+    * Shellifies an option name
+    * 
+    * @param name
+    * @return
+    */
+   public static String shellifyOptionName(String name)
+   {
+      return Commands.shellifyOptionName(name);
+   }
+
+   /**
+    * Shellifies an option name using the provided style
+    * 
+    * @param name
+    * @param style
+    * @return
+    */
+   public static String shellifyOptionNameDashed(String name)
+   {
+      return Commands.shellifyOptionNameDashed(name);
    }
 
    /**

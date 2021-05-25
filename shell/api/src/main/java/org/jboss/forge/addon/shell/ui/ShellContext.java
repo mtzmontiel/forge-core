@@ -1,6 +1,13 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.shell.ui;
 
 import org.jboss.forge.addon.shell.Shell;
+import org.jboss.forge.addon.shell.line.CommandLine;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.wizard.UIWizard;
@@ -19,12 +26,17 @@ public interface ShellContext extends UIContext
    Shell getProvider();
 
    /**
-    * If it's in interactive mode
+    * @return <code>true</code> if it's in interactive mode
     */
    boolean isInteractive();
 
    /**
-    * If should display errors
+    * @return <code>true</code> if should display errors
     */
    boolean isVerbose();
+
+   /**
+    * @return the {@link CommandLine} used in this command execution
+    */
+   CommandLine getCommandLine();
 }

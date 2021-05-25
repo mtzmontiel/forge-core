@@ -1,9 +1,13 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.git.ui;
 
 import java.util.LinkedList;
 import java.util.List;
-
-import javax.inject.Inject;
 
 import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.git.facet.GitFacet;
@@ -18,7 +22,6 @@ import org.jboss.forge.addon.ui.input.InputComponent;
 import org.jboss.forge.addon.ui.input.UICompleter;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.util.Metadata;
@@ -28,13 +31,13 @@ import org.jboss.forge.furnace.util.Strings;
 public class GitIgnoreCreateCommandImpl extends AbstractGitCommand implements GitIgnoreCreateCommand
 {
 
-   @Inject
-   @WithAttributes(label = "From templates", required = true)
    private UIInput<String> templates;
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      this.templates = getInputComponentFactory().createInput("templates", String.class).setLabel("From templates")
+               .setRequired(true);
       templates.setCompleter(new GitIgnoreTemplateCompleter(getSelectedProject(builder.getUIContext())));
       builder.add(templates);
    }
@@ -42,7 +45,7 @@ public class GitIgnoreCreateCommandImpl extends AbstractGitCommand implements Gi
    @Override
    public UICommandMetadata getMetadata(UIContext context)
    {
-      return Metadata.from(super.getMetadata(context), this.getClass()).name("GITIGNORE: Create")
+      return Metadata.from(super.getMetadata(context), this.getClass()).name("GitIgnore: Create")
                .description("Create .gitignore from templates");
    }
 
@@ -81,7 +84,7 @@ public class GitIgnoreCreateCommandImpl extends AbstractGitCommand implements Gi
       @Override
       public Iterable<String> getCompletionProposals(UIContext context, InputComponent<?, String> input, String value)
       {
-         List<String> result = new LinkedList<String>();
+         List<String> result = new LinkedList<>();
 
          String[] values = value.split(" ");
 

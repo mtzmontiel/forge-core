@@ -1,10 +1,9 @@
-/*
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.configuration;
 
 import java.math.BigDecimal;
@@ -142,7 +141,7 @@ public interface Configuration
     * @return An Iterator of keys that match the prefix.
     * @see #getKeys()
     */
-   Iterator<?> getKeys(String prefix);
+   Iterator<String> getKeys(String prefix);
 
    /**
     * Get the list of the keys contained in the configuration. The returned iterator can be used to obtain all defined
@@ -153,7 +152,7 @@ public interface Configuration
     * 
     * @return An Iterator.
     */
-   Iterator<?> getKeys();
+   Iterator<String> getKeys();
 
    /**
     * Get a list of {@link Properties} associated with the given configuration key. This method expects the given key to

@@ -1,11 +1,12 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee;
+
+import static org.jboss.forge.addon.javaee.JavaEEPackageConstants.DEFAULT_ENTITY_PACKAGE;
 
 import java.io.IOException;
 
@@ -17,13 +18,18 @@ import org.jboss.forge.addon.javaee.cdi.CDIFacet_1_0;
 import org.jboss.forge.addon.javaee.cdi.CDIFacet_1_1;
 import org.jboss.forge.addon.javaee.ejb.EJBFacet_3_2;
 import org.jboss.forge.addon.javaee.faces.FacesFacet_2_2;
+import org.jboss.forge.addon.javaee.jaxws.JAXWSFacet;
 import org.jboss.forge.addon.javaee.jpa.JPAFacet;
 import org.jboss.forge.addon.javaee.jpa.JPAFacet_2_0;
 import org.jboss.forge.addon.javaee.jpa.PersistenceOperations;
 import org.jboss.forge.addon.javaee.rest.RestFacet_2_0;
 import org.jboss.forge.addon.javaee.rest.config.RestConfigurationStrategy;
+import org.jboss.forge.addon.javaee.servlet.ServletFacet_2_5;
+import org.jboss.forge.addon.javaee.servlet.ServletFacet_3_0;
 import org.jboss.forge.addon.javaee.servlet.ServletFacet_3_1;
 import org.jboss.forge.addon.javaee.validation.ValidationFacet;
+import org.jboss.forge.addon.javaee.websocket.WebSocketFacet_1_1;
+import org.jboss.forge.addon.maven.projects.MavenBuildSystem;
 import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
 import org.jboss.forge.addon.parser.java.projects.JavaProjectType;
 import org.jboss.forge.addon.parser.java.projects.JavaWebProjectType;
@@ -55,12 +61,15 @@ public class ProjectHelper
    @Inject
    private PersistenceOperations persistenceOperations;
 
+   @Inject
+   private MavenBuildSystem mavenBuildSystem;
+
    /**
     * Creates a project installing the required facets from {@link JavaWebProjectType#getRequiredFacets()}
     */
    public Project createWebProject()
    {
-      return projectFactory.createTempProject(javaWebProjectType.getRequiredFacets());
+      return projectFactory.createTempProject(mavenBuildSystem, javaWebProjectType.getRequiredFacets());
    }
 
    /**
@@ -68,7 +77,7 @@ public class ProjectHelper
     */
    public Project createJavaLibraryProject()
    {
-      return projectFactory.createTempProject(javaProjectType.getRequiredFacets());
+      return projectFactory.createTempProject(mavenBuildSystem, javaProjectType.getRequiredFacets());
    }
 
    /**
@@ -77,6 +86,22 @@ public class ProjectHelper
    public EJBFacet_3_2 installEJB_3_2(Project project)
    {
       return facetFactory.install(project, EJBFacet_3_2.class);
+   }
+
+   /**
+    * Installs the {@link ServletFacet_2_5} facet
+    */
+   public ServletFacet_2_5 installServlet_2_5(Project project)
+   {
+      return facetFactory.install(project, ServletFacet_2_5.class);
+   }
+
+   /**
+    * Installs the {@link ServletFacet_3_0} facet
+    */
+   public ServletFacet_3_0 installServlet_3_0(Project project)
+   {
+      return facetFactory.install(project, ServletFacet_3_0.class);
    }
 
    /**
@@ -120,6 +145,22 @@ public class ProjectHelper
    }
 
    /**
+    * Installs the {@link WebSocketFacet_1_1} facet
+    */
+   public WebSocketFacet_1_1 installWebSocket_1_1(Project project)
+   {
+      return facetFactory.install(project, WebSocketFacet_1_1.class);
+   }
+
+   /**
+    * Installs the {@link JAXWSFacet} facet
+    */
+   public JAXWSFacet installJAXWSFacet(Project project)
+   {
+      return facetFactory.install(project, JAXWSFacet.class);
+   }
+
+   /**
     * Installs the {@link ValidationFacet} facet
     */
    public ValidationFacet installValidation(Project project)
@@ -139,13 +180,13 @@ public class ProjectHelper
 
    public JavaResource createJPAEntity(Project project, String entityName) throws IOException
    {
-      String packageName = project.getFacet(JavaSourceFacet.class).getBasePackage() + ".model";
+      String packageName = project.getFacet(JavaSourceFacet.class).getBasePackage() + "." + DEFAULT_ENTITY_PACKAGE;
       return persistenceOperations.newEntity(project, entityName, packageName, GenerationType.AUTO);
    }
 
    public JavaResource createJPAEmbeddable(Project project, String entityName) throws IOException
    {
-      String packageName = project.getFacet(JavaSourceFacet.class).getBasePackage() + ".model";
+      String packageName = project.getFacet(JavaSourceFacet.class).getBasePackage() + "." + DEFAULT_ENTITY_PACKAGE;
       return persistenceOperations.newEmbeddableEntity(project, entityName, packageName);
    }
 
@@ -153,13 +194,13 @@ public class ProjectHelper
    {
       JavaSourceFacet javaSourceFacet = project.getFacet(JavaSourceFacet.class);
       JavaEnumSource enumSource = Roaster.create(JavaEnumSource.class).setName(enumName);
-      String packageName = project.getFacet(JavaSourceFacet.class).getBasePackage() + ".model";
+      String packageName = project.getFacet(JavaSourceFacet.class).getBasePackage() + "." + DEFAULT_ENTITY_PACKAGE;
       enumSource.setPackage(packageName);
       return javaSourceFacet.saveJavaSource(enumSource);
    }
 
    public Project refreshProject(Project project)
    {
-      return projectFactory.findProject(project.getRoot());
+      return projectFactory.findProject(project.getRoot(), mavenBuildSystem);
    }
 }

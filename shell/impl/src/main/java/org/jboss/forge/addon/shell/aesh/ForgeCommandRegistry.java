@@ -1,16 +1,19 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.aesh;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
 import org.jboss.aesh.cl.parser.CommandLineParser;
+import org.jboss.aesh.complete.CompleteOperation;
 import org.jboss.aesh.console.command.CommandNotFoundException;
 import org.jboss.aesh.console.command.container.CommandContainer;
 import org.jboss.aesh.console.command.registry.AeshCommandRegistryBuilder;
@@ -30,6 +33,7 @@ import org.jboss.forge.addon.ui.controller.CommandController;
 import org.jboss.forge.addon.ui.controller.CommandControllerFactory;
 import org.jboss.forge.addon.ui.controller.SingleCommandController;
 import org.jboss.forge.addon.ui.controller.WizardCommandController;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.furnace.Furnace;
 import org.jboss.forge.furnace.addons.AddonRegistry;
 import org.jboss.forge.furnace.exception.ContainerException;
@@ -49,7 +53,6 @@ public class ForgeCommandRegistry implements CommandRegistry
 
    private final CommandFactory commandFactory;
    private final CommandRegistry aeshCommandRegistry;
-   private final ConverterFactory converterFactory;
 
    private CommandLineUtil commandLineUtil;
    private final CommandControllerFactory commandControllerFactory;
@@ -60,10 +63,13 @@ public class ForgeCommandRegistry implements CommandRegistry
       this.shell = shell;
       this.commandFactory = addonRegistry.getServices(CommandFactory.class).get();
       this.commandControllerFactory = addonRegistry.getServices(CommandControllerFactory.class).get();
-      this.converterFactory = addonRegistry.getServices(ConverterFactory.class).get();
+      this.commandLineUtil = new CommandLineUtil(addonRegistry);
+      ConverterFactory converterFactory = addonRegistry.getServices(ConverterFactory.class).get();
+      InputComponentFactory inputComponentFactory = addonRegistry.getServices(InputComponentFactory.class).get();
 
       // Use Aesh commands
-      Man manCommand = new Man(new ForgeManProvider(shell, commandFactory));
+      Man manCommand = new Man(
+               new ForgeManProvider(shell, commandFactory, converterFactory, inputComponentFactory, commandLineUtil));
       this.aeshCommandRegistry = new AeshCommandRegistryBuilder()
                .command(Grep.class)
                .command(Less.class)
@@ -74,10 +80,10 @@ public class ForgeCommandRegistry implements CommandRegistry
    }
 
    @Override
-   public CommandContainer getCommand(String name, String completeLine) throws CommandNotFoundException
+   public CommandContainer<?> getCommand(String name, String completeLine) throws CommandNotFoundException
    {
       waitUntilStarted();
-      
+
       ShellContextImpl shellContext = shell.createUIContext();
       try
       {
@@ -86,7 +92,7 @@ public class ForgeCommandRegistry implements CommandRegistry
       catch (CommandNotFoundException cnfe)
       {
          // Not a forge command, fallback to aesh command
-         CommandContainer nativeCommand = aeshCommandRegistry.getCommand(name, completeLine);
+         CommandContainer<?> nativeCommand = aeshCommandRegistry.getCommand(name, completeLine);
          AeshUICommand aeshCommand = new AeshUICommand(nativeCommand);
          SingleCommandController controller = commandControllerFactory.createSingleController(shellContext, shell,
                   aeshCommand);
@@ -98,13 +104,13 @@ public class ForgeCommandRegistry implements CommandRegistry
          {
             // Do nothing
          }
-         ShellSingleCommand cmd = new ShellSingleCommand(controller, shellContext, getCommandLineUtil());
+         ShellSingleCommand cmd = new ShellSingleCommand(controller, shellContext, commandLineUtil);
          CommandAdapter commandAdapter = new CommandAdapter(shell, shellContext, cmd);
          return new ForgeCommandContainer(shellContext, aeshCommand.getCommandLineParser(), commandAdapter);
       }
    }
 
-   private CommandContainer getForgeCommand(ShellContextImpl shellContext, String name, String completeLine)
+   private CommandContainer<?> getForgeCommand(ShellContextImpl shellContext, String name, String completeLine)
             throws CommandNotFoundException
    {
       AbstractShellInteraction cmd = findCommand(shellContext, name);
@@ -114,8 +120,8 @@ public class ForgeCommandRegistry implements CommandRegistry
       }
       try
       {
-         CommandLineParser parser = cmd.getParser(shellContext, completeLine == null ? name : completeLine);
          CommandAdapter command = new CommandAdapter(shell, shellContext, cmd);
+         CommandLineParser<?> parser = cmd.getParser(shellContext, completeLine == null ? name : completeLine, command);
          return new ForgeCommandContainer(shellContext, parser, command);
       }
       catch (RuntimeException e)
@@ -131,49 +137,34 @@ public class ForgeCommandRegistry implements CommandRegistry
    private AbstractShellInteraction findCommand(ShellContext shellContext, String commandName)
    {
       AbstractShellInteraction result = null;
-      CommandLineUtil cmdLineUtil = getCommandLineUtil();
-      UICommand cmd = commandFactory.getCommandByName(shellContext, commandName);
-      if (cmd != null)
+      UICommand cmd = commandFactory.getNewCommandByName(shellContext, commandName);
+      if (cmd != null && cmd.isEnabled(shellContext))
       {
          CommandController controller = commandControllerFactory.createController(shellContext, shell, cmd);
          if (controller instanceof WizardCommandController)
          {
-            result = new ShellWizard((WizardCommandController) controller, shellContext, cmdLineUtil, this);
+            result = new ShellWizard((WizardCommandController) controller, shellContext, commandLineUtil, this);
          }
          else
          {
-            result = new ShellSingleCommand(controller, shellContext, cmdLineUtil);
+            result = new ShellSingleCommand(controller, shellContext, commandLineUtil);
          }
       }
       return result;
    }
 
-   private CommandLineUtil getCommandLineUtil()
-   {
-      if (commandLineUtil == null)
-      {
-         commandLineUtil = new CommandLineUtil(getConverterFactory());
-      }
-      return commandLineUtil;
-   }
-
-   private ConverterFactory getConverterFactory()
-   {
-      return converterFactory;
-   }
-
    @Override
    public Set<String> getAllCommandNames()
    {
-      waitUntilStarted();
-
+      if (!furnace.getStatus().isStarted())
+         return Collections.emptySet();
       Set<String> allCommands = new TreeSet<>();
       allCommands.addAll(getForgeCommandNames());
       allCommands.addAll(aeshCommandRegistry.getAllCommandNames());
       return allCommands;
    }
 
-   public void waitUntilStarted()
+   private void waitUntilStarted()
    {
       while (furnace.getStatus().isStarting())
       {
@@ -194,6 +185,35 @@ public class ForgeCommandRegistry implements CommandRegistry
       {
          return commandFactory.getEnabledCommandNames(newShellContext);
       }
+   }
+
+   @Override
+   public void removeCommand(String name)
+   {
+      try
+      {
+         if (aeshCommandRegistry.getCommand(name, null) != null)
+            aeshCommandRegistry.removeCommand(name);
+      }
+      catch (CommandNotFoundException e)
+      {
+         throw new RuntimeException("Error while removing command: " + e.getMessage(), e);
+      }
+
+   }
+
+   @Override
+   public void completeCommandName(CompleteOperation completeOperation)
+   {
+      List<String> names = new ArrayList<>();
+      for (String commandName : getAllCommandNames())
+      {
+         if (commandName.startsWith(completeOperation.getBuffer()))
+         {
+            names.add(commandName);
+         }
+      }
+      completeOperation.addCompletionCandidates(names);
    }
 
 }

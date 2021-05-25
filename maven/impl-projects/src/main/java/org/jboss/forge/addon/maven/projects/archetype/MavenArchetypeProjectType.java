@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.maven.projects.archetype;
 
 import java.util.Arrays;
@@ -12,9 +11,10 @@ import java.util.Arrays;
 import org.jboss.forge.addon.maven.projects.MavenFacet;
 import org.jboss.forge.addon.maven.projects.archetype.ui.ArchetypeSelectionWizardStep;
 import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
+import org.jboss.forge.addon.projects.AbstractProjectType;
 import org.jboss.forge.addon.projects.ProjectFacet;
-import org.jboss.forge.addon.projects.ProjectType;
 import org.jboss.forge.addon.projects.facets.MetadataFacet;
+import org.jboss.forge.addon.projects.stacks.Stack;
 import org.jboss.forge.addon.ui.wizard.UIWizardStep;
 
 /**
@@ -22,7 +22,7 @@ import org.jboss.forge.addon.ui.wizard.UIWizardStep;
  * 
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
-public class MavenArchetypeProjectType implements ProjectType
+public class MavenArchetypeProjectType extends AbstractProjectType
 {
 
    @Override
@@ -54,6 +54,12 @@ public class MavenArchetypeProjectType implements ProjectType
    public String toString()
    {
       return "from-archetype";
+   }
+
+   @Override
+   public boolean supports(Stack stack)
+   {
+      return false;
    }
 
 }

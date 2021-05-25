@@ -1,5 +1,5 @@
-/*
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -17,6 +17,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.enterprise.inject.Vetoed;
+
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
 import org.jboss.forge.addon.resource.events.ResourceCreated;
@@ -30,6 +32,7 @@ import org.jboss.forge.addon.ui.output.UIOutput;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
 
+@Vetoed
 public class AutomaticTransactionCommandListener implements CommandExecutionListener
 {
    private final ResourceFactory factory;

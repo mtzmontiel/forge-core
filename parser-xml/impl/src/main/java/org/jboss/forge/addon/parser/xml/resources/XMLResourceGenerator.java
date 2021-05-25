@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.parser.xml.resources;
 
 import java.io.File;
@@ -5,16 +11,19 @@ import java.io.File;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
 import org.jboss.forge.addon.resource.ResourceGenerator;
-import org.jboss.forge.furnace.container.simple.Service;
 
-public class XMLResourceGenerator implements ResourceGenerator<XMLResource, File>, Service
+public class XMLResourceGenerator implements ResourceGenerator<XMLResource, File>
 {
    @Override
    public boolean handles(Class<?> type, Object resource)
    {
-      if (resource instanceof File && ((File) resource).getName().endsWith(".xml"))
+      if (resource instanceof File)
       {
-         return true;
+         File file = (File) resource;
+         if (file.getName().endsWith(".xml") || file.getName().endsWith(".xhtml"))
+         {
+            return true;
+         }
       }
       return false;
    }

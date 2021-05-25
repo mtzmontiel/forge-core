@@ -1,15 +1,22 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.resource;
-
-import javax.inject.Inject;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
+import org.jboss.forge.arquillian.AddonDeployment;
+import org.jboss.forge.arquillian.AddonDeployments;
+import org.jboss.forge.arquillian.archive.AddonArchive;
+import org.jboss.forge.furnace.container.simple.Service;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -20,14 +27,14 @@ import org.junit.runner.RunWith;
 public class ResourceFactoryGeneratorTest
 {
    @Deployment(order = 1)
-   @Dependencies({ @AddonDependency(name = "org.jboss.forge.addon:resources") })
-   public static ForgeArchive getDeployment()
+   @AddonDeployments({ @AddonDeployment(name = "org.jboss.forge.addon:resources") })
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
+      AddonArchive archive = ShrinkWrap
+               .create(AddonArchive.class)
+               .addAsServiceProvider(Service.class, ResourceFactoryGeneratorTest.class)
                .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
+                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:simple"),
                         AddonDependencyEntry.create("org.jboss.forge.addon:resources"),
                         AddonDependencyEntry.create("mockstring", "1"));
 
@@ -35,21 +42,25 @@ public class ResourceFactoryGeneratorTest
    }
 
    @Deployment(testable = false, name = "mockstring,1", order = 3)
-   public static ForgeArchive getAddonDeployment()
+   public static AddonArchive getAddonDeployment()
    {
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap.create(AddonArchive.class)
                .addClasses(MockStringResource.class, MockStringResourceGenerator.class)
-               .addBeansXML()
+               .addAsServiceProvider(Service.class, MockStringResourceGenerator.class)
                .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:resources")
-               );
+                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:simple"),
+                        AddonDependencyEntry.create("org.jboss.forge.addon:resources"));
 
       return archive;
    }
 
-   @Inject
    private ResourceFactory factory;
+
+   @Before
+   public void setUp()
+   {
+      this.factory = SimpleContainer.getServices(getClass().getClassLoader(), ResourceFactory.class).get();
+   }
 
    @Test
    public void testCreateResourceFromAddon() throws Exception

@@ -4,7 +4,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>configuration-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
    </parent>
    <artifactId>configuration-impl</artifactId>
    <name>Forge - Configuration Impl</name>
@@ -16,7 +16,7 @@
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>shell</artifactId>
+         <artifactId>ui</artifactId>
          <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
@@ -34,7 +34,7 @@
       <dependency>
          <groupId>commons-collections</groupId>
          <artifactId>commons-collections</artifactId>
-         <version>3.2.1</version>
+         <version>3.2.2</version>
       </dependency>
    </dependencies>
 </project>

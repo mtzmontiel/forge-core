@@ -1,10 +1,12 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.addon.facets;
+
+import java.util.Optional;
 
 /**
  * @author <a href="http://community.jboss.org/people/kenfinni">Ken Finnigan</a>
@@ -34,6 +36,14 @@ public interface Faceted<FACETTYPE extends Facet<?>>
     * {@link Facet} of that type is installed.
     */
    <F extends FACETTYPE> F getFacet(Class<F> type) throws FacetNotFoundException;
+
+   /**
+    * Return the instance of the requested {@link Facet} type as an {@link Optional}.
+    * 
+    * @param type the requested {@link Facet} type
+    * @return an {@link Optional} for the given facet
+    */
+   <F extends FACETTYPE> Optional<F> getFacetAsOptional(Class<F> type);
 
    /**
     * Return a {@link Iterable} of the currently installed {@link Facet}s. Return an empty list if no facets of that

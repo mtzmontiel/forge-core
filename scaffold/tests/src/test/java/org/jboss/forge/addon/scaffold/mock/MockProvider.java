@@ -1,10 +1,13 @@
-/*
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.addon.scaffold.mock;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
@@ -13,10 +16,7 @@ import org.jboss.forge.addon.scaffold.spi.ScaffoldGenerationContext;
 import org.jboss.forge.addon.scaffold.spi.ScaffoldProvider;
 import org.jboss.forge.addon.scaffold.spi.ScaffoldSetupContext;
 import org.jboss.forge.addon.ui.result.NavigationResult;
-
-import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 
 public class MockProvider implements ScaffoldProvider
 {
@@ -26,9 +26,6 @@ public class MockProvider implements ScaffoldProvider
 
    private static boolean isSetup;
    private static boolean isGenerated;
-
-   @Inject
-   private ResourceFactory resourceFactory;
 
    @Override
    public String getName()
@@ -60,6 +57,8 @@ public class MockProvider implements ScaffoldProvider
    {
       isGenerated = false;
       List<Resource<?>> result = new ArrayList<Resource<?>>();
+      ResourceFactory resourceFactory = SimpleContainer.getServices(getClass().getClassLoader(), ResourceFactory.class)
+               .get();
       for (Resource<?> resource : generationContext.getResources())
       {
          Scaffoldable scaffoldable = ((ScaffoldableResource) resource).getUnderlyingResourceObject();

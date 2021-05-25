@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.faces.ui;
 
 import javax.inject.Inject;
@@ -13,8 +12,10 @@ import org.jboss.forge.addon.facets.FacetFactory;
 import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.javaee.faces.FacesFacet;
 import org.jboss.forge.addon.javaee.ui.AbstractJavaEECommand;
+import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.facets.DependencyFacet;
+import org.jboss.forge.addon.projects.stacks.annotations.StackConstraint;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
@@ -32,7 +33,8 @@ import org.jboss.forge.addon.ui.util.Metadata;
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
 @SuppressWarnings("rawtypes")
-@FacetConstraint(DependencyFacet.class)
+@FacetConstraint({ DependencyFacet.class, JavaSourceFacet.class })
+@StackConstraint(FacesFacet.class)
 public class FacesSetupWizardImpl extends AbstractJavaEECommand implements FacesSetupWizard
 {
 
@@ -48,13 +50,17 @@ public class FacesSetupWizardImpl extends AbstractJavaEECommand implements Faces
    private FacetFactory facetFactory;
 
    @Inject
-   @WithAttributes(required = true, label = "JavaServer Faces Version", defaultValue = "2.0")
+   @WithAttributes(required = true, label = "JavaServer Faces Version", defaultValue = "2.1")
    private UISelectOne<FacesFacet> facesVersion;
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
-      builder.add(facesVersion);
+      Project project = getSelectedProject(builder);
+      if (filterValueChoicesFromStack(project, facesVersion))
+      {
+         builder.add(facesVersion);
+      }
    }
 
    @Override

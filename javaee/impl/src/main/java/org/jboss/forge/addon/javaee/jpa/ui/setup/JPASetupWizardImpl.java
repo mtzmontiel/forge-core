@@ -1,33 +1,35 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.jpa.ui.setup;
 
-import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeSet;
 
 import javax.inject.Inject;
 
-import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.facets.FacetFactory;
+import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.javaee.jpa.JPAFacet;
 import org.jboss.forge.addon.javaee.jpa.PersistenceContainer;
 import org.jboss.forge.addon.javaee.jpa.PersistenceMetaModelFacet;
 import org.jboss.forge.addon.javaee.jpa.PersistenceProvider;
 import org.jboss.forge.addon.javaee.jpa.containers.JBossEAP6Container;
+import org.jboss.forge.addon.javaee.jpa.containers.WildflyContainer;
 import org.jboss.forge.addon.javaee.jpa.providers.HibernateProvider;
 import org.jboss.forge.addon.javaee.ui.AbstractJavaEECommand;
+import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
 import org.jboss.forge.addon.projects.Project;
+import org.jboss.forge.addon.projects.stacks.Stack;
+import org.jboss.forge.addon.projects.stacks.annotations.StackConstraint;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.context.UINavigationContext;
-import org.jboss.forge.addon.ui.context.UIValidationContext;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.input.UISelectOne;
 import org.jboss.forge.addon.ui.metadata.WithAttributes;
@@ -38,6 +40,8 @@ import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
 import org.jboss.forge.furnace.services.Imported;
 
+@FacetConstraint(JavaSourceFacet.class)
+@StackConstraint(JPAFacet.class)
 public class JPASetupWizardImpl extends AbstractJavaEECommand implements JPASetupWizard
 {
    @Inject
@@ -46,11 +50,11 @@ public class JPASetupWizardImpl extends AbstractJavaEECommand implements JPASetu
 
    @Inject
    @WithAttributes(shortName = 'c', label = "Container", required = true)
-   private UISelectOne<PersistenceContainer> container;
+   private UISelectOne<PersistenceContainer> jpaContainer;
 
    @Inject
    @WithAttributes(shortName = 'p', label = "Provider", required = true)
-   private UISelectOne<PersistenceProvider> provider;
+   private UISelectOne<PersistenceProvider> jpaProvider;
 
    @Inject
    @WithAttributes(shortName = 'm', label = "Install a JPA 2 metamodel generator?")
@@ -58,6 +62,9 @@ public class JPASetupWizardImpl extends AbstractJavaEECommand implements JPASetu
 
    @Inject
    private JBossEAP6Container defaultContainer;
+
+   @Inject
+   private WildflyContainer wildFlyContainer;
 
    @Inject
    private HibernateProvider defaultProvider;
@@ -79,52 +86,60 @@ public class JPASetupWizardImpl extends AbstractJavaEECommand implements JPASetu
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
-      initContainers(builder.getUIContext());
+      UIContext uiContext = builder.getUIContext();
+      Project project = getSelectedProject(builder);
+      if (initJpaVersion(project, uiContext))
+      {
+         builder.add(jpaVersion);
+      }
+      initContainers(project, uiContext);
       initProviders();
       initConfigureMetadata();
-      builder.add(jpaVersion).add(container).add(provider).add(configureMetadata);
+      builder.add(jpaContainer).add(jpaProvider).add(configureMetadata);
    }
 
-   private void initContainers(UIContext context)
+   private boolean initJpaVersion(Project project, UIContext context)
+   {
+      if (project.hasFacet(JPAFacet.class))
+      {
+         // If JPA is already installed, do not ask for JPA Version
+         jpaVersion.setEnabled(false);
+         return false;
+      }
+      else
+      {
+         return filterValueChoicesFromStack(project, jpaVersion);
+      }
+   }
+
+   private void initContainers(Project project, UIContext context)
    {
       final boolean isGUI = context.getProvider().isGUI();
-      container.setItemLabelConverter(new Converter<PersistenceContainer, String>()
+      jpaContainer.setItemLabelConverter((source) -> source.getName(isGUI));
+      // Ordering items
+      TreeSet<PersistenceContainer> treeSet = new TreeSet<>(
+               (o1, o2) -> String.valueOf(o1.getName(isGUI)).compareTo(o2.getName(isGUI)));
+      Optional<Stack> stack = project.getStack();
+      for (PersistenceContainer persistenceContainer : jpaContainer.getValueChoices())
       {
-         @Override
-         public String convert(PersistenceContainer source)
-         {
-            return source != null ? source.getName(isGUI) : null;
-         }
-      });
-      // Ordering items:
-      TreeSet<PersistenceContainer> treeSet = new TreeSet<>(new Comparator<PersistenceContainer>()
-      {
-         @Override
-         public int compare(PersistenceContainer o1, PersistenceContainer o2)
-         {
-            return String.valueOf(o1.getName(isGUI)).compareTo(o2.getName(isGUI));
-         }
-      });
-      Iterable<PersistenceContainer> valueChoices = container.getValueChoices();
-      for (PersistenceContainer persistenceContainer : valueChoices)
-      {
-         treeSet.add(persistenceContainer);
+         if (!stack.isPresent() || persistenceContainer.supports(stack.get()))
+            treeSet.add(persistenceContainer);
       }
-      container.setValueChoices(treeSet);
-      container.setDefaultValue(defaultContainer);
+      jpaContainer.setValueChoices(treeSet);
+      if (treeSet.contains(defaultContainer))
+      {
+         jpaContainer.setDefaultValue(defaultContainer);
+      }
+      else if (treeSet.contains(wildFlyContainer))
+      {
+         jpaContainer.setDefaultValue(wildFlyContainer);
+      }
    }
 
    private void initProviders()
    {
-      provider.setItemLabelConverter(new Converter<PersistenceProvider, String>()
-      {
-         @Override
-         public String convert(PersistenceProvider source)
-         {
-            return source != null ? source.getName() : null;
-         }
-      });
-      provider.setDefaultValue(defaultProvider);
+      jpaProvider.setItemLabelConverter((source) -> source.getName());
+      jpaProvider.setDefaultValue(defaultProvider);
    }
 
    private void initConfigureMetadata()
@@ -137,23 +152,25 @@ public class JPASetupWizardImpl extends AbstractJavaEECommand implements JPASetu
    }
 
    @Override
-   public void validate(UIValidationContext validator)
-   {
-      // NOOP
-   }
-
-   @Override
    public Result execute(final UIExecutionContext context) throws Exception
    {
       applyUIValues(context.getUIContext());
       Project project = getSelectedProject(context);
-      JPAFacet<?> facet = jpaVersion.getValue();
-      if (facetFactory.install(project, facet))
+      if (jpaVersion.isEnabled())
       {
-         context.getUIContext().setSelection(facet.getConfigFile());
+         JPAFacet<?> facet = jpaVersion.getValue();
+         if (facetFactory.install(project, facet))
+         {
+            context.getUIContext().setSelection(facet.getConfigFile());
+            return Results.success();
+         }
+      }
+      else
+      {
          return Results.success();
       }
       return Results.fail("Could not install JPA.");
+
    }
 
    @Override
@@ -167,8 +184,8 @@ public class JPASetupWizardImpl extends AbstractJavaEECommand implements JPASetu
    {
       Map<Object, Object> attributeMap = context.getAttributeMap();
       attributeMap.put(JPAFacet.class, jpaVersion.getValue());
-      attributeMap.put(PersistenceProvider.class, provider.getValue());
-      attributeMap.put(PersistenceContainer.class, container.getValue());
+      attributeMap.put(PersistenceProvider.class, jpaProvider.getValue());
+      attributeMap.put(PersistenceContainer.class, jpaContainer.getValue());
       attributeMap.put("ConfigureMetadata", configureMetadata.getValue());
    }
 

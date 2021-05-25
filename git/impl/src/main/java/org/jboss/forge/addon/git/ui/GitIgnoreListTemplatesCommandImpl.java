@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.git.ui;
 
 import org.jboss.forge.addon.facets.constraints.FacetConstraint;
@@ -18,7 +24,7 @@ public class GitIgnoreListTemplatesCommandImpl extends AbstractGitCommand implem
    @Override
    public UICommandMetadata getMetadata(UIContext context)
    {
-      return Metadata.from(super.getMetadata(context), this.getClass()).name("GITIGNORE: List templates")
+      return Metadata.from(super.getMetadata(context), this.getClass()).name("GitIgnore: List templates")
                .description("List all available .gitignore templates");
    }
 

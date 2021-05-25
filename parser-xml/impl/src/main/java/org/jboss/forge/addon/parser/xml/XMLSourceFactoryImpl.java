@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -10,14 +10,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
-import org.jboss.forge.furnace.container.simple.Service;
 import org.jboss.forge.parser.xml.Node;
 import org.jboss.forge.parser.xml.XMLParser;
 
 /**
  * @author <a href="mailto:koen.aers@gmail.com">Koen Aers</a>
  */
-public class XMLSourceFactoryImpl implements XMLSourceFactory, Service
+public class XMLSourceFactoryImpl implements XMLSourceFactory
 {
    /**
     * Open the given {@link File}, parsing its contents into a new {@link Node} instance.

@@ -1,21 +1,18 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.resource.converter;
 
 import java.io.File;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 import org.jboss.forge.addon.convert.AbstractConverter;
 import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.util.Strings;
 
 /**
@@ -25,12 +22,16 @@ import org.jboss.forge.furnace.util.Strings;
  * 
  */
 
-@Singleton
 public class DirectoryResourceConverter extends AbstractConverter<Object, DirectoryResource>
 {
    private final ResourceFactory resourceFactory;
 
-   @Inject
+   public DirectoryResourceConverter()
+   {
+      super(Object.class, DirectoryResource.class);
+      this.resourceFactory = SimpleContainer.getServices(getClass().getClassLoader(), ResourceFactory.class).get();
+   }
+
    public DirectoryResourceConverter(ResourceFactory resourceFactory)
    {
       super(Object.class, DirectoryResource.class);

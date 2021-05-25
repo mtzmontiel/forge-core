@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -26,11 +25,12 @@ import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.util.Metadata;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
+import org.jboss.forge.arquillian.AddonDeployment;
+import org.jboss.forge.arquillian.AddonDeployments;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,18 +43,17 @@ import org.junit.runner.RunWith;
 public class ShellVerboseTest
 {
    @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:shell-test-harness")
+   @AddonDeployments({
+            @AddonDeployment(name = "org.jboss.forge.addon:shell-test-harness")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap.create(AddonArchive.class)
                .addBeansXML()
                .addClass(ExceptionCommand.class)
                .addAsAddonDependencies(
                         AddonDependencyEntry.create("org.jboss.forge.addon:shell-test-harness"),
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi")
-               );
+                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"));
 
       return archive;
    }
@@ -62,18 +61,24 @@ public class ShellVerboseTest
    @Inject
    private ShellTest shellTest;
 
+   @After
+   public void tearDown() throws Exception
+   {
+      shellTest.close();
+   }
+
    @Test
    public void testVerboseOutput() throws Exception
    {
       shellTest.execute("export VERBOSE=false");
       Thread.sleep(500);
-      Result result = shellTest.execute("throw-exception", 5, TimeUnit.SECONDS);
+      Result result = shellTest.execute("throw-exception", 15, TimeUnit.SECONDS);
       Assert.assertThat(result, instanceOf(Failed.class));
       Assert.assertThat(shellTest.getStdErr(), not(containsString("Cause Exception")));
       shellTest.clearScreen();
       shellTest.execute("export VERBOSE=true");
       Thread.sleep(500);
-      shellTest.execute("throw-exception", 5, TimeUnit.SECONDS);
+      shellTest.execute("throw-exception", 15, TimeUnit.SECONDS);
       Assert.assertThat(shellTest.getStdErr(), containsString("Cause Exception"));
    }
 

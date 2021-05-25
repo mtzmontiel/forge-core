@@ -1,11 +1,12 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.addon.ui.context;
 
+import java.util.Optional;
 
 /**
  * Represents the objects with on which the {@link UIContext} is currently focused. This may be the current working
@@ -26,20 +27,26 @@ public interface UISelection<SELECTIONTYPE> extends Iterable<SELECTIONTYPE>
     * 
     * @return the first element in this selection. Returns null if no selection is found
     */
-   public SELECTIONTYPE get();
+   SELECTIONTYPE get();
 
    /**
     * Counts the elements in this selection.
     * 
     * @return the number of selected elements
     */
-   public int size();
+   int size();
 
    /**
     * Checks if this selection is empty
     * 
     * @return true if the selection is empty, false otherwise
     */
-   public boolean isEmpty();
+   boolean isEmpty();
 
+   /**
+    * Returns the selected {@link UIRegion} for the first element
+    * 
+    * @return an {@link Optional} with the selected {@link UIRegion} for the UI
+    */
+   Optional<UIRegion<SELECTIONTYPE>> getRegion();
 }

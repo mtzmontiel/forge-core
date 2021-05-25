@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.projects;
 
 import java.util.Set;
@@ -38,4 +44,14 @@ public interface ProjectProvider
     * Returns the priority of this {@link ProjectProvider}. Lower values receive a higher priority.
     */
    int priority();
+
+   /**
+    * Return the {@link ProjectFacet} subclass supported by this {@link ProjectProvider}
+    * 
+    * @param facet the {@link ProjectFacet} class
+    * @return a {@link ProjectFacet} class as a subclass of the given facet parameter. Returns the facet class specified
+    *         in the parameter if the facet cannot be resolved.
+    * @since 3.0
+    */
+   Class<? extends ProjectFacet> resolveProjectFacet(Class<? extends ProjectFacet> facet);
 }

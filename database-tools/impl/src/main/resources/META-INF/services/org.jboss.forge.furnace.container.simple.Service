@@ -1,0 +1,5 @@
+org.jboss.forge.addon.database.tools.ui.JDBCAddDependencyCommand
+org.jboss.forge.addon.database.tools.connections.ConnectionProfileManagerImpl
+org.jboss.forge.addon.database.tools.connections.ui.CreateConnectionProfileCommandImpl
+org.jboss.forge.addon.database.tools.connections.ui.RemoveConnectionProfileCommandImpl
+org.jboss.forge.addon.database.tools.generate.GenerateEntitiesCommand

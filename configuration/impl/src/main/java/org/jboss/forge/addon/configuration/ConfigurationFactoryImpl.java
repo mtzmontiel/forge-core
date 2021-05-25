@@ -1,7 +1,12 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.configuration;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 
 import javax.enterprise.inject.Produces;
@@ -10,7 +15,7 @@ import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import org.apache.commons.configuration.XMLConfiguration;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.furnace.Furnace;
@@ -30,10 +35,13 @@ public class ConfigurationFactoryImpl implements ConfigurationFactory
    Configuration getUserConfiguration(InjectionPoint ip) throws ConfigurationException
    {
       Configuration config = getUserConfiguration();
-      Annotated annotated = ip.getAnnotated();
-      if (annotated.isAnnotationPresent(Subset.class))
+      if (ip != null)
       {
-         config = config.subset(annotated.getAnnotation(Subset.class).value());
+         Annotated annotated = ip.getAnnotated();
+         if (annotated.isAnnotationPresent(Subset.class))
+         {
+            config = config.subset(annotated.getAnnotation(Subset.class).value());
+         }
       }
       return config;
    }
@@ -50,7 +58,7 @@ public class ConfigurationFactoryImpl implements ConfigurationFactory
          File userConfigurationFile;
          if (property == null || property.isEmpty())
          {
-            userConfigurationFile = new File(OperatingSystemUtils.getUserForgeDir(), "config.xml");
+            userConfigurationFile = new File(OperatingSystemUtils.getUserForgeDir(), "config.properties");
          }
          else
          {
@@ -63,13 +71,14 @@ public class ConfigurationFactoryImpl implements ConfigurationFactory
             {
                parentFile.mkdirs();
             }
-            try (FileWriter fw = new FileWriter(userConfigurationFile))
+            try
             {
-               fw.write("<configuration/>");
+               userConfigurationFile.createNewFile();
             }
             catch (IOException e)
             {
-               throw new ConfigurationException("Error while create user configuration", e);
+               throw new ConfigurationException(
+                        "Error while creating user configuration file: " + userConfigurationFile, e);
             }
          }
          userConfiguration = getConfiguration(userConfigurationFile);
@@ -87,11 +96,11 @@ public class ConfigurationFactoryImpl implements ConfigurationFactory
    {
       try
       {
-         XMLConfiguration commonsConfig = new XMLConfiguration(file);
+         PropertiesConfiguration commonsConfig = new PropertiesConfiguration(file);
          commonsConfig.setEncoding("UTF-8");
          commonsConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
          commonsConfig.setAutoSave(true);
-         return new ConfigurationAdapter().setDelegate(commonsConfig);
+         return new ConfigurationAdapter(commonsConfig);
       }
       catch (org.apache.commons.configuration.ConfigurationException e)
       {
@@ -106,7 +115,7 @@ public class ConfigurationFactoryImpl implements ConfigurationFactory
          File tmpFile;
          try
          {
-            tmpFile = File.createTempFile("user_config", ".xml");
+            tmpFile = File.createTempFile("user_config", ".properties");
             System.setProperty(USER_CONFIG_PATH, tmpFile.getAbsolutePath());
             tmpFile.deleteOnExit();
          }

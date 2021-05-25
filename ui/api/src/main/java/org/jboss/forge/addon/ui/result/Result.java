@@ -1,10 +1,12 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.addon.ui.result;
+
+import java.util.Optional;
 
 import org.jboss.forge.addon.ui.command.UICommand;
 
@@ -18,5 +20,10 @@ public interface Result
    /**
     * Get the output message from the executed {@link UICommand}.
     */
-   public String getMessage();
+   String getMessage();
+
+   /**
+    * Any Java type instance for a response entity that is supported by the runtime can be passed.
+    */
+   Optional<Object> getEntity();
 }

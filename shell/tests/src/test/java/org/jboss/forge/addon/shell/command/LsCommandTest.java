@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.command;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -22,11 +21,12 @@ import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.shell.test.ShellTest;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
+import org.jboss.forge.arquillian.AddonDeployment;
+import org.jboss.forge.arquillian.AddonDeployments;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,18 +39,18 @@ import org.junit.runner.RunWith;
 public class LsCommandTest
 {
    @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:maven"),
-            @AddonDependency(name = "org.jboss.forge.addon:ui"),
-            @AddonDependency(name = "org.jboss.forge.addon:projects"),
-            @AddonDependency(name = "org.jboss.forge.addon:shell-test-harness"),
-            @AddonDependency(name = "org.jboss.forge.addon:resources"),
-            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
+   @AddonDeployments({
+            @AddonDeployment(name = "org.jboss.forge.addon:maven"),
+            @AddonDeployment(name = "org.jboss.forge.addon:ui"),
+            @AddonDeployment(name = "org.jboss.forge.addon:projects"),
+            @AddonDeployment(name = "org.jboss.forge.addon:shell-test-harness"),
+            @AddonDeployment(name = "org.jboss.forge.addon:resources"),
+            @AddonDeployment(name = "org.jboss.forge.furnace.container:cdi")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap
+               .create(AddonArchive.class)
                .addBeansXML()
                .addAsAddonDependencies(
                         AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
@@ -58,8 +58,7 @@ public class LsCommandTest
                         AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
                         AddonDependencyEntry.create("org.jboss.forge.addon:shell-test-harness"),
                         AddonDependencyEntry.create("org.jboss.forge.addon:resources"),
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi")
-               );
+                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"));
 
       return archive;
    }
@@ -70,15 +69,21 @@ public class LsCommandTest
    @Inject
    private ProjectFactory projectFactory;
 
+   @After
+   public void tearDown() throws Exception
+   {
+      shellTest.close();
+   }
+
    @Test
    public void testLsCommand() throws Exception
    {
       Project project = projectFactory.createTempProject();
       String projectPath = project.getRoot().getFullyQualifiedName();
-      shellTest.execute("cd " + projectPath, 5, TimeUnit.SECONDS);
-      shellTest.execute("touch file.txt", 5, TimeUnit.SECONDS);
+      shellTest.execute("cd " + projectPath, 15, TimeUnit.SECONDS);
+      shellTest.execute("touch file.txt", 15, TimeUnit.SECONDS);
       shellTest.clearScreen();
-      shellTest.execute("ls *file*", 5, TimeUnit.SECONDS);
+      shellTest.execute("ls *file*", 15, TimeUnit.SECONDS);
       Assert.assertThat(shellTest.getStdOut(), CoreMatchers.containsString("file.txt"));
    }
 
@@ -87,7 +92,7 @@ public class LsCommandTest
    {
       Project project = projectFactory.createTempProject();
       String projectPath = project.getRoot().getFullyQualifiedName();
-      shellTest.execute("cd " + projectPath, 5, TimeUnit.SECONDS);
+      shellTest.execute("cd " + projectPath, 15, TimeUnit.SECONDS);
       shellTest.clearScreen();
       Result result = shellTest.execute(
                "ls foo" + File.separator + "jee-example-app-1.0.0.ear", 5,

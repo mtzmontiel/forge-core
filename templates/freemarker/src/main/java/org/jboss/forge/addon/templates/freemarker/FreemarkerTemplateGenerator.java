@@ -1,14 +1,10 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.templates.freemarker;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.templates.Template;
@@ -21,10 +17,8 @@ import freemarker.template.Configuration;
  * 
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
-@Singleton
 public class FreemarkerTemplateGenerator implements TemplateGenerator
 {
-   @Inject
    private ResourceTemplateLoader loader;
    private Configuration config;
 
@@ -37,7 +31,7 @@ public class FreemarkerTemplateGenerator implements TemplateGenerator
    @Override
    public Template create(Resource<?> template, Class<? extends Template> type)
    {
-      return new FreemarkerTemplateImpl(loader, template, getConfiguration());
+      return new FreemarkerTemplateImpl(getResourceTemplateLoader(), template, getConfiguration());
    }
 
    private Configuration getConfiguration()
@@ -45,9 +39,18 @@ public class FreemarkerTemplateGenerator implements TemplateGenerator
       if (config == null)
       {
          config = new Configuration();
-         config.setTemplateLoader(loader);
+         config.setTemplateLoader(getResourceTemplateLoader());
       }
       return config;
+   }
+
+   private ResourceTemplateLoader getResourceTemplateLoader()
+   {
+      if (loader == null)
+      {
+         loader = new ResourceTemplateLoader();
+      }
+      return loader;
    }
 
 }

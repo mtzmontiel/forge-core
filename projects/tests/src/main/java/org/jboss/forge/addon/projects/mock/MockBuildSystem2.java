@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -8,8 +8,8 @@ package org.jboss.forge.addon.projects.mock;
 
 import java.util.Arrays;
 
+import org.jboss.forge.addon.projects.AbstractProjectProvider;
 import org.jboss.forge.addon.projects.Project;
-import org.jboss.forge.addon.projects.ProjectProvider;
 import org.jboss.forge.addon.projects.ProvidedProjectFacet;
 import org.jboss.forge.addon.projects.facets.PackagingFacet;
 import org.jboss.forge.addon.resource.Resource;
@@ -17,7 +17,7 @@ import org.jboss.forge.addon.resource.Resource;
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-public class MockBuildSystem2 implements ProjectProvider
+public class MockBuildSystem2 extends AbstractProjectProvider
 {
 
    @Override
@@ -35,7 +35,9 @@ public class MockBuildSystem2 implements ProjectProvider
    @Override
    public Project createProject(Resource<?> target)
    {
-      return null;
+      MockProject mockProject = new MockProject(target);
+      mockProject.install(new MockMetadataFacet(mockProject, this));
+      return mockProject;
    }
 
    @Override
@@ -55,5 +57,4 @@ public class MockBuildSystem2 implements ProjectProvider
    {
       return 0;
    }
-
 }

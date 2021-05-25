@@ -1,17 +1,14 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.maven.projects.facets;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import java.util.Properties;
-
-import javax.inject.Inject;
 
 import org.apache.maven.model.Model;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -21,12 +18,14 @@ import org.jboss.forge.addon.maven.projects.MavenFacet;
 import org.jboss.forge.addon.parser.java.facets.JavaCompilerFacet;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.archive.AddonArchive;
+import org.jboss.forge.furnace.container.simple.Service;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -38,31 +37,30 @@ import org.junit.runner.RunWith;
 public class MavenJavaCompilerFacetTest
 {
    @Deployment
-   @Dependencies({
+   @AddonDependencies({
             @AddonDependency(name = "org.jboss.forge.addon:parser-java"),
             @AddonDependency(name = "org.jboss.forge.addon:projects"),
-            @AddonDependency(name = "org.jboss.forge.addon:maven")
+            @AddonDependency(name = "org.jboss.forge.addon:maven"),
+            @AddonDependency(name = "org.jboss.forge.furnace.container:simple")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:parser-java"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects")
-               );
+      AddonArchive archive = ShrinkWrap
+               .create(AddonArchive.class)
+               .addAsServiceProvider(Service.class, MavenJavaCompilerFacetTest.class);
 
       return archive;
    }
 
-   @Inject
    private ProjectFactory projectFactory;
-
-   @Inject
    private FacetFactory facetFactory;
+
+   @Before
+   public void setUp()
+   {
+      projectFactory = SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class).get();
+      facetFactory = SimpleContainer.getServices(getClass().getClassLoader(), FacetFactory.class).get();
+   }
 
    @Test
    public void testCompilerPropertiesSet() throws Exception
@@ -73,8 +71,10 @@ public class MavenJavaCompilerFacetTest
       MavenFacet facet = project.getFacet(MavenFacet.class);
       Model model = facet.getModel();
       Properties properties = model.getProperties();
-      Assert.assertThat(properties.getProperty("maven.compiler.source"), equalTo("1.7"));
-      Assert.assertThat(properties.getProperty("maven.compiler.target"), equalTo("1.7"));
+      Assert.assertThat(properties.getProperty("maven.compiler.source"),
+               equalTo(JavaCompilerFacet.DEFAULT_COMPILER_VERSION.toString()));
+      Assert.assertThat(properties.getProperty("maven.compiler.target"),
+               equalTo(JavaCompilerFacet.DEFAULT_COMPILER_VERSION.toString()));
       Assert.assertThat(properties.getProperty("project.build.sourceEncoding"), equalTo("UTF-8"));
    }
 }

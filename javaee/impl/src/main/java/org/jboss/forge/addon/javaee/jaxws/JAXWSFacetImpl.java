@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -16,7 +16,6 @@ import javax.inject.Inject;
 import org.jboss.forge.addon.dependencies.Dependency;
 import org.jboss.forge.addon.dependencies.builder.DependencyBuilder;
 import org.jboss.forge.addon.javaee.AbstractJavaEEFacet;
-import org.jboss.forge.addon.javaee.facets.JAXWSFacet;
 import org.jboss.forge.addon.projects.dependencies.DependencyInstaller;
 import org.jboss.forge.furnace.versions.SingleVersion;
 import org.jboss.forge.furnace.versions.Version;
@@ -48,19 +47,25 @@ public class JAXWSFacetImpl extends AbstractJavaEEFacet implements JAXWSFacet
    }
 
    @Override
+   public String getSpecName()
+   {
+      return "JAX-WS";
+   }
+
+   @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("2.2");
+      return SingleVersion.valueOf("2.2");
    }
 
    @Override
    protected Map<Dependency, List<Dependency>> getRequiredDependencyOptions()
    {
       Map<Dependency, List<Dependency>> result = new HashMap<>();
-      result.put(JBOSS_JAXB_API, Arrays.asList(JBOSS_JAXB_API));
-      result.put(JBOSS_JAXRPC_API, Arrays.asList(JBOSS_JAXRPC_API));
-      result.put(JBOSS_SAAJ_API, Arrays.asList(JBOSS_SAAJ_API));
-      result.put(JBOSS_JAXWS_API, Arrays.asList(JBOSS_JAXWS_API));
+      result.put(JBOSS_JAXB_API, Arrays.asList(JBOSS_JAXB_API, JAVAEE6, JAVAEE7));
+      result.put(JBOSS_JAXRPC_API, Arrays.asList(JBOSS_JAXRPC_API, JAVAEE6, JAVAEE7));
+      result.put(JBOSS_SAAJ_API, Arrays.asList(JBOSS_SAAJ_API, JAVAEE6, JAVAEE7));
+      result.put(JBOSS_JAXWS_API, Arrays.asList(JBOSS_JAXWS_API, JAVAEE6, JAVAEE7));
       return result;
    }
 }

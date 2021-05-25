@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -31,7 +31,8 @@ public class AddonClassifierFacet extends AbstractFacet<Project> implements Proj
 {
    private static final CoordinateBuilder JAR_PLUGIN_COORDINATE = CoordinateBuilder.create()
             .setGroupId("org.apache.maven.plugins")
-            .setArtifactId("maven-jar-plugin");
+            .setArtifactId("maven-jar-plugin")
+            .setVersion("2.6");
 
    @Override
    public boolean install()

@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.command;
 
 import java.util.Collections;
@@ -15,10 +14,7 @@ import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
-import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.resource.Resource;
-import org.jboss.forge.addon.resource.ResourceFactory;
-import org.jboss.forge.addon.resource.util.ResourcePathResolver;
 import org.jboss.forge.addon.shell.spi.command.CdTokenHandler;
 import org.jboss.forge.addon.shell.spi.command.CdTokenHandlerFactory;
 import org.jboss.forge.addon.shell.ui.AbstractShellCommand;
@@ -42,9 +38,6 @@ import org.jboss.forge.addon.ui.util.Metadata;
 public class CdCommand extends AbstractShellCommand
 {
    private static final Logger log = Logger.getLogger(CdCommand.class.getName());
-
-   @Inject
-   private ResourceFactory resourceFactory;
 
    @Inject
    private CdTokenHandlerFactory tokenHandlerFactory;
@@ -99,16 +92,23 @@ public class CdCommand extends AbstractShellCommand
          if (newResource == null)
          {
             Resource<?> currentResource = (Resource<?>) uiContext.getInitialSelection().get();
-            newResource = new ResourcePathResolver(resourceFactory, currentResource, token).resolve();
+            try
+            {
+               newResource = currentResource.resolveChildren(token);
+            }
+            catch (RuntimeException re)
+            {
+               log.log(Level.WARNING, "Error while resolving child resource " + token + " of " + currentResource, re);
+            }
          }
 
-         if (newResource.isEmpty() || !newResource.get(0).exists())
+         if (newResource == null || newResource.isEmpty() || !newResource.get(0).exists())
          {
-            result = Results.fail(token + ": No such file or directory");
+            result = Results.fail(token + ": Child resource doesn't exist");
          }
          else
          {
-            FileResource<?> newFileResource = newResource.get(0).reify(FileResource.class);
+            Resource<?> newFileResource = newResource.get(0);
             if (newFileResource == null)
             {
                result = Results.fail(token + ": Invalid path");

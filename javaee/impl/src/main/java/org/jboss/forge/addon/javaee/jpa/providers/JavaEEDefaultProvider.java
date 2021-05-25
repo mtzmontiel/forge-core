@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.jpa.providers;
 
 import java.util.Collections;
@@ -48,7 +47,7 @@ public class JavaEEDefaultProvider implements PersistenceProvider
    {
       unit.excludeUnlistedClasses(Boolean.FALSE);
       PersistenceCommonDescriptor descriptor = (PersistenceCommonDescriptor) unit.up();
-      if (new SingleVersion(descriptor.getVersion()).compareTo(new SingleVersion("2.1")) >= 0)
+      if (SingleVersion.valueOf(descriptor.getVersion()).compareTo(SingleVersion.valueOf("2.1")) >= 0)
       {
          PropertiesCommon properties = unit.getOrCreateProperties();
          String schemaGenerationPropertyValue = getSchemaGenerationPropertyValue(ds.getSchemaGenerationType());

@@ -1,15 +1,12 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.maven.projects.javaee;
 
 import java.util.List;
-
-import javax.inject.Inject;
 
 import org.jboss.forge.addon.dependencies.Coordinate;
 import org.jboss.forge.addon.dependencies.DependencyRepository;
@@ -34,7 +31,7 @@ import org.jboss.forge.addon.maven.plugins.MavenPluginBuilder;
 import org.jboss.forge.addon.maven.projects.MavenPluginFacet;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.facets.DependencyFacet;
-import org.jboss.forge.furnace.addons.AddonRegistry;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.services.Imported;
 import org.jboss.forge.furnace.util.Strings;
 import org.jboss.shrinkwrap.descriptor.api.persistence.PersistenceCommonDescriptor;
@@ -49,11 +46,8 @@ import org.jboss.shrinkwrap.descriptor.api.persistence.PersistenceUnitCommon;
          @FacetConstraint(JPAFacet.class),
          @FacetConstraint(MavenPluginFacet.class)
 })
-public class MavenPersistenceMetaModelFacet extends AbstractFacet<Project> implements PersistenceMetaModelFacet
+public class MavenPersistenceMetaModelFacet extends AbstractFacet<Project>implements PersistenceMetaModelFacet
 {
-   @Inject
-   private AddonRegistry addonRegistry;
-
    private MetaModelProvider metaModelProvider;
 
    @Override
@@ -114,7 +108,8 @@ public class MavenPersistenceMetaModelFacet extends AbstractFacet<Project> imple
       String providerName = allPersistenceUnit.size() > 0 ? allPersistenceUnit.get(0)
                .getProvider() : null;
 
-      Imported<PersistenceProvider> services = addonRegistry.getServices(PersistenceProvider.class);
+      Imported<PersistenceProvider> services = SimpleContainer.getServices(getClass().getClassLoader(),
+               PersistenceProvider.class);
       for (PersistenceProvider candidate : services)
       {
          try

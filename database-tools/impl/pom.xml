@@ -4,7 +4,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>database-tools-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
    </parent>
 
    <artifactId>database-tools-impl</artifactId>
@@ -15,7 +15,6 @@
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
          <artifactId>database-tools-api</artifactId>
-         <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.hibernate</groupId>
@@ -54,10 +53,6 @@
                <groupId>commons-logging</groupId>
             </exclusion>
             <exclusion>
-               <artifactId>slf4j-api</artifactId>
-               <groupId>org.slf4j</groupId>
-            </exclusion>
-            <exclusion>
                <artifactId>xml-apis</artifactId>
                <groupId>xml-apis</groupId>
             </exclusion>
@@ -69,56 +64,82 @@
                <artifactId>hibernate-jpa-2.1-api</artifactId>
                <groupId>org.hibernate.javax.persistence</groupId>
             </exclusion>
+            <exclusion>
+               <artifactId>slf4j-api</artifactId>
+               <groupId>org.slf4j</groupId>
+            </exclusion>
+            <exclusion>
+               <artifactId>ant</artifactId>
+               <groupId>ant</groupId>
+            </exclusion>
+            <exclusion>
+               <artifactId>geronimo-jta_1.1_spec</artifactId>
+               <groupId>org.apache.geronimo.specs</groupId>
+            </exclusion>
+            <exclusion>
+               <groupId>javax.enterprise</groupId>
+               <artifactId>cdi-api</artifactId>
+            </exclusion>
          </exclusions>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.furnace.container</groupId>
-         <artifactId>cdi-api</artifactId>
+         <artifactId>simple</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>convert-api</artifactId>
+         <artifactId>convert</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>dependencies-api</artifactId>
+         <artifactId>dependencies</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>parser-xml-api</artifactId>
+         <artifactId>parser-xml</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>ui-api</artifactId>
+         <artifactId>ui</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>resources-api</artifactId>
+         <artifactId>resources</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>projects-api</artifactId>
+         <artifactId>projects</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>parser-java-api</artifactId>
+         <artifactId>parser-java</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>javaee-api</artifactId>
+         <artifactId>javaee</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>configuration-api</artifactId>
+         <artifactId>configuration</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
    </dependencies>

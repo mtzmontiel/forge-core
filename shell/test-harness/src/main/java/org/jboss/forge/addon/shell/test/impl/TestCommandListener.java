@@ -1,11 +1,12 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.test.impl;
+
+import javax.enterprise.inject.Vetoed;
 
 import org.jboss.forge.addon.ui.command.AbstractCommandExecutionListener;
 import org.jboss.forge.addon.ui.command.UICommand;
@@ -15,6 +16,7 @@ import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.wizard.UIWizard;
 import org.jboss.forge.addon.ui.wizard.WizardExecutionListener;
 
+@Vetoed
 public class TestCommandListener extends AbstractCommandExecutionListener implements WizardExecutionListener
 {
    boolean isWizard;

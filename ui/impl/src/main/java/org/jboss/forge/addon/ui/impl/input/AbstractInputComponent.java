@@ -1,14 +1,12 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.input;
 
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
@@ -27,6 +25,7 @@ import org.jboss.forge.addon.ui.validate.UIValidator;
 import org.jboss.forge.furnace.spi.ListenerRegistration;
 import org.jboss.forge.furnace.util.Assert;
 import org.jboss.forge.furnace.util.Callables;
+import org.jboss.forge.furnace.util.Sets;
 import org.jboss.forge.furnace.util.Strings;
 
 /**
@@ -44,15 +43,19 @@ public abstract class AbstractInputComponent<IMPLTYPE extends InputComponent<IMP
    private final String name;
    private final char shortName;
    private final Class<VALUETYPE> type;
-   private final Set<UIValidator> validators = new LinkedHashSet<>();
-   private final Set<ValueChangeListener> valueChangeListeners = new LinkedHashSet<>();
+   private final Set<UIValidator> validators = Sets.getConcurrentSet();
+   private final Set<ValueChangeListener> valueChangeListeners = Sets.getConcurrentSet();
 
    private String label;
    private Callable<String> description;
+   private Callable<String> note;
    private Callable<Boolean> enabled = Callables.returning(Boolean.TRUE);
    private Callable<Boolean> required = Callables.returning(Boolean.FALSE);
-   private String requiredMessage;
+   private Callable<String> requiredMessage;
    private Converter<String, VALUETYPE> valueConverter;
+
+   private boolean deprecated;
+   private String deprecatedMessage;
 
    public AbstractInputComponent(String name, char shortName, Class<VALUETYPE> type)
    {
@@ -131,7 +134,7 @@ public abstract class AbstractInputComponent<IMPLTYPE extends InputComponent<IMP
       this.description = Callables.returning(description);
       return (IMPLTYPE) this;
    }
-   
+
    @Override
    public IMPLTYPE setDescription(Callable<String> description)
    {
@@ -162,11 +165,18 @@ public abstract class AbstractInputComponent<IMPLTYPE extends InputComponent<IMP
    @Override
    public String getRequiredMessage()
    {
-      return requiredMessage;
+      return Callables.call(requiredMessage);
    }
 
    @Override
    public IMPLTYPE setRequiredMessage(String requiredMessage)
+   {
+      this.requiredMessage = Callables.returning(requiredMessage);
+      return (IMPLTYPE) this;
+   }
+
+   @Override
+   public IMPLTYPE setRequiredMessage(Callable<String> requiredMessage)
    {
       this.requiredMessage = requiredMessage;
       return (IMPLTYPE) this;
@@ -230,6 +240,52 @@ public abstract class AbstractInputComponent<IMPLTYPE extends InputComponent<IMP
             return listener;
          }
       };
+   }
+
+   @Override
+   public IMPLTYPE setNote(Callable<String> note)
+   {
+      this.note = note;
+      return (IMPLTYPE) this;
+   }
+
+   @Override
+   public IMPLTYPE setNote(String note)
+   {
+      this.note = Callables.returning(note);
+      return (IMPLTYPE) this;
+   }
+
+   @Override
+   public String getNote()
+   {
+      return Callables.call(note);
+   }
+
+   @Override
+   public boolean isDeprecated()
+   {
+      return deprecated;
+   }
+
+   @Override
+   public IMPLTYPE setDeprecated(boolean deprecated)
+   {
+      this.deprecated = deprecated;
+      return (IMPLTYPE) this;
+   }
+
+   @Override
+   public String getDeprecatedMessage()
+   {
+      return deprecatedMessage;
+   }
+
+   @Override
+   public IMPLTYPE setDeprecatedMessage(String message)
+   {
+      this.deprecatedMessage = message;
+      return (IMPLTYPE) this;
    }
 
    protected Set<ValueChangeListener> getValueChangeListeners()

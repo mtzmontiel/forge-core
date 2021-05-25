@@ -3,7 +3,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>resources-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
    </parent>
    <artifactId>resources-tests</artifactId>
    <name>Forge - Resources Addon Tests</name>
@@ -37,9 +37,28 @@
       <!-- Furnace Container -->
       <dependency>
          <groupId>org.jboss.forge.furnace.container</groupId>
-         <artifactId>cdi</artifactId>
+         <artifactId>simple</artifactId>
          <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
    </dependencies>
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-install-plugin</artifactId>
+            <configuration>
+               <skip>true</skip>
+            </configuration>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-deploy-plugin</artifactId>
+            <configuration>
+               <skip>true</skip>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+
 </project>

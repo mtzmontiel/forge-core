@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.jboss.forge.addon.parser.java.facets.JavaCompilerFacet;
 import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
+import org.jboss.forge.addon.projects.AbstractProjectType;
 import org.jboss.forge.addon.projects.ProjectFacet;
 import org.jboss.forge.addon.projects.ProjectType;
 import org.jboss.forge.addon.projects.facets.DependencyFacet;
@@ -24,12 +25,12 @@ import org.jboss.forge.addon.ui.wizard.UIWizardStep;
  * 
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-public class JavaProjectType implements ProjectType
+public class JavaProjectType extends AbstractProjectType
 {
    @Override
    public String getType()
    {
-      return "Java Library";
+      return "Java Library (JAR)";
    }
 
    @Override

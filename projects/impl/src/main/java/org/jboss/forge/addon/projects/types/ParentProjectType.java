@@ -1,21 +1,21 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.projects.types;
 
 import java.util.LinkedList;
 import java.util.List;
 
+import org.jboss.forge.addon.projects.AbstractProjectType;
 import org.jboss.forge.addon.projects.ProjectFacet;
-import org.jboss.forge.addon.projects.ProjectType;
 import org.jboss.forge.addon.projects.facets.DependencyFacet;
 import org.jboss.forge.addon.projects.facets.MetadataFacet;
 import org.jboss.forge.addon.projects.facets.ModuleFacet;
 import org.jboss.forge.addon.projects.facets.PackagingFacet;
+import org.jboss.forge.addon.projects.stacks.Stack;
 import org.jboss.forge.addon.ui.wizard.UIWizardStep;
 
 /**
@@ -23,7 +23,7 @@ import org.jboss.forge.addon.ui.wizard.UIWizardStep;
  *
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
-public class ParentProjectType implements ProjectType
+public class ParentProjectType extends AbstractProjectType
 {
    @Override
    public String getType()
@@ -58,5 +58,11 @@ public class ParentProjectType implements ProjectType
    public String toString()
    {
       return "parent";
+   }
+
+   @Override
+   public boolean supports(Stack stack)
+   {
+      return false;
    }
 }

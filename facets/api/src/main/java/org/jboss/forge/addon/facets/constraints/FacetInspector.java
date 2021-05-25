@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.facets.constraints;
 
 import java.util.LinkedHashSet;
@@ -144,8 +143,7 @@ public abstract class FacetInspector
     * Inspect the given {@link Class} for all {@link FacetConstraintType#REQUIRED} dependency {@link Facet} types. This
     * method inspects the entire constraint tree.
     */
-   public static <FACETEDTYPE extends Faceted<FACETTYPE>, FACETTYPE extends Facet<FACETEDTYPE>> Set<Class<FACETTYPE>> getAllRequiredFacets(
-            final Class<FACETTYPE> inspectedType)
+   public static <FACETTYPE extends Facet<?>> Set<Class<FACETTYPE>> getAllRequiredFacets(final Class<?> inspectedType)
    {
       Set<Class<FACETTYPE>> seen = new LinkedHashSet<Class<FACETTYPE>>();
       return getAllRelatedFacets(seen, inspectedType, FacetConstraintType.REQUIRED);

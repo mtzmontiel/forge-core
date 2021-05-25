@@ -3,7 +3,7 @@
    <parent>
       <groupId>org.jboss.forge</groupId>
       <artifactId>forge-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
       <relativePath>../pom.xml</relativePath>
    </parent>
 
@@ -20,7 +20,7 @@
    </modules>
 
    <properties>
-      <version.jgit>3.3.0.201403021825-r</version.jgit>
+      <version.jgit>4.8.0.201706111038-r</version.jgit>
    </properties>
 
    <dependencyManagement>

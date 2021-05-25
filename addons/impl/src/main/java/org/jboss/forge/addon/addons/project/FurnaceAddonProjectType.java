@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -10,20 +10,20 @@ import java.util.Arrays;
 
 import org.jboss.forge.addon.addons.ui.FurnaceAddonSetupStep;
 import org.jboss.forge.addon.maven.projects.MavenPluginFacet;
+import org.jboss.forge.addon.projects.AbstractProjectType;
 import org.jboss.forge.addon.projects.ProjectFacet;
-import org.jboss.forge.addon.projects.ProjectType;
 import org.jboss.forge.addon.ui.wizard.UIWizardStep;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  * 
  */
-public class FurnaceAddonProjectType implements ProjectType
+public class FurnaceAddonProjectType extends AbstractProjectType
 {
    @Override
    public String getType()
    {
-      return "Forge Addon";
+      return "Forge Addon (JAR)";
    }
 
    @Override
@@ -41,7 +41,7 @@ public class FurnaceAddonProjectType implements ProjectType
    @Override
    public String toString()
    {
-      return "addon";
+      return "forge-addon";
    }
 
    @Override

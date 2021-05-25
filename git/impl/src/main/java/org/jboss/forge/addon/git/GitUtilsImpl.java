@@ -1,10 +1,9 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.git;
 
 import static org.jboss.forge.addon.git.constants.GitConstants.GIT_DIRECTORY;
@@ -291,11 +290,10 @@ public class GitUtilsImpl implements GitUtils
       RevCommit newHead = null;
       List<Ref> cherryPickedRefs = new LinkedList<Ref>();
 
-      RevWalk revWalk = new RevWalk(repo);
-      try
+      try (RevWalk revWalk = new RevWalk(repo))
       {
          // get the head commit
-         Ref headRef = repo.getRef(Constants.HEAD);
+         Ref headRef = repo.findRef(Constants.HEAD);
          if (headRef == null)
             throw new NoHeadException(
                      JGitText.get().commitOnRepoWithoutHEADCurrentlyNotSupported);
@@ -359,13 +357,9 @@ public class GitUtilsImpl implements GitUtils
          throw new JGitInternalException(
                   MessageFormat.format(
                            JGitText.get().exceptionCaughtDuringExecutionOfCherryPickCommand,
-                           e), e);
+                           e),
+                  e);
       }
-      finally
-      {
-         revWalk.release();
-      }
-
       return new CherryPickResult(newHead, cherryPickedRefs);
    }
 

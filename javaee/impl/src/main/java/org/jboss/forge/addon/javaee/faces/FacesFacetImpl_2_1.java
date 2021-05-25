@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.faces;
 
 import java.util.Arrays;
@@ -41,14 +40,14 @@ public class FacesFacetImpl_2_1 extends AbstractFacesFacetImpl<WebFacesConfigDes
    @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("2.1");
+      return SingleVersion.valueOf("2.1");
    }
 
    @Override
    protected Map<Dependency, List<Dependency>> getRequiredDependencyOptions()
    {
       Map<Dependency, List<Dependency>> result = new LinkedHashMap<>();
-      result.put(JAVAEE6_FACES_21, Arrays.asList(JAVAEE6_FACES_21));
+      result.put(JAVAEE6_FACES_21, Arrays.asList(JAVAEE6_FACES_21, JAVAEE6));
       return result;
    }
 
@@ -70,6 +69,6 @@ public class FacesFacetImpl_2_1 extends AbstractFacesFacetImpl<WebFacesConfigDes
    {
       WebFacesConfigDescriptor descriptorContents = Descriptors.create(WebFacesConfigDescriptor.class)
                .version("2.1");
-      descriptor.setContents(descriptorContents.exportAsString());      
+      descriptor.setContents(descriptorContents.exportAsString());
    }
 }

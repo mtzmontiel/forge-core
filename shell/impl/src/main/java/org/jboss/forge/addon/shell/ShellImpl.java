@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -47,12 +47,16 @@ import org.jboss.forge.addon.shell.ui.ShellContextImpl;
 import org.jboss.forge.addon.shell.ui.ShellUIOutputImpl;
 import org.jboss.forge.addon.shell.ui.ShellUIProgressMonitor;
 import org.jboss.forge.addon.shell.ui.ShellUIPromptImpl;
+import org.jboss.forge.addon.ui.DefaultUIDesktop;
+import org.jboss.forge.addon.ui.UIDesktop;
 import org.jboss.forge.addon.ui.UIRuntime;
 import org.jboss.forge.addon.ui.command.CommandExecutionListener;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIContextListener;
+import org.jboss.forge.addon.ui.context.UISelection;
 import org.jboss.forge.addon.ui.output.UIOutput;
 import org.jboss.forge.addon.ui.progress.UIProgressMonitor;
+import org.jboss.forge.addon.ui.util.Selections;
 import org.jboss.forge.furnace.Furnace;
 import org.jboss.forge.furnace.addons.AddonRegistry;
 import org.jboss.forge.furnace.services.Imported;
@@ -74,6 +78,9 @@ public class ShellImpl implements Shell, UIRuntime
    private final AddonRegistry addonRegistry;
    private final AeshConsole console;
    private final UIOutput output;
+   private UIDesktop desktop;
+   private boolean embedded;
+   private String name = "Shell";
    private final List<CommandExecutionListener> executionListeners = new LinkedList<>();
    private final List<CommandNotFoundListener> commandNotFoundListeners = new LinkedList<>();
 
@@ -88,8 +95,7 @@ public class ShellImpl implements Shell, UIRuntime
       File history = new File(forgeHome, "history");
       File alias = new File(forgeHome, "alias");
       File export = new File(forgeHome, "export");
-      final ForgeCommandRegistry registry =
-               new ForgeCommandRegistry(furnace, this, addonRegistry);
+      final ForgeCommandRegistry registry = new ForgeCommandRegistry(furnace, this, addonRegistry);
       // Register DidYouMeanListener
       commandNotFoundListeners.add(new DidYouMeanCommandNotFoundListener(registry));
       SettingsBuilder newSettings = new SettingsBuilder(settings)
@@ -104,6 +110,8 @@ public class ShellImpl implements Shell, UIRuntime
       {
          newSettings.terminal(new POSIXTerminal());
       }
+      // This conflicts with the provided Man in ForgeCommandRegistry
+      newSettings.enableMan(false);
       this.console = new AeshConsoleBuilder()
                .prompt(createPrompt(initialResource))
                .settings(newSettings.create())
@@ -216,12 +224,15 @@ public class ShellImpl implements Shell, UIRuntime
    public ShellContextImpl createUIContext()
    {
       Imported<UIContextListener> listeners = addonRegistry.getServices(UIContextListener.class);
-      ShellContextImpl shellContextImpl = new ShellContextImpl(this, currentResource, listeners);
+      UISelection<?> initialSelection = Selections.from(currentResource);
+      ShellContextImpl shellContextImpl = new ShellContextImpl(this, initialSelection, listeners);
       for (CommandExecutionListener listener : executionListeners)
       {
          shellContextImpl.addCommandExecutionListener(listener);
       }
-      ExportManager exportManager = console.getExportManager();
+      ExportManager exportManager = null;
+      if (console != null)
+         exportManager = console.getExportManager();
       if (exportManager != null)
       {
          Map<Object, Object> attributeMap = shellContextImpl.getAttributeMap();
@@ -311,10 +322,10 @@ public class ShellImpl implements Shell, UIRuntime
          {
             try
             {
-               CommandContainer exitCommand = registry.getCommand("exit", "");
+               CommandContainer<?> exitCommand = registry.getCommand("exit", "");
                // print a new line so we exit nicely
                console.getShell().out().println();
-               exitCommand.getCommand().execute(
+               exitCommand.getParser().getCommand().execute(
                         new AeshCommandInvocation((AeshConsoleImpl) ShellImpl.this.console, ControlOperator.NONE, 1,
                                  null));
             }
@@ -324,5 +335,46 @@ public class ShellImpl implements Shell, UIRuntime
             }
          }
       }
+   }
+
+   public void setDesktop(UIDesktop desktop)
+   {
+      this.desktop = desktop;
+   }
+
+   @Override
+   public UIDesktop getDesktop()
+   {
+      if (desktop == null)
+         desktop = new DefaultUIDesktop();
+      return desktop;
+   }
+
+   @Override
+   public String getName()
+   {
+      return name;
+   }
+
+   @Override
+   public boolean isEmbedded()
+   {
+      return embedded;
+   }
+
+   /**
+    * @param name the name to set
+    */
+   public void setName(String name)
+   {
+      this.name = name;
+   }
+
+   /**
+    * @param embedded the embedded to set
+    */
+   public void setEmbedded(boolean embedded)
+   {
+      this.embedded = embedded;
    }
 }

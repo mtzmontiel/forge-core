@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell;
 
 import java.util.logging.Level;
@@ -43,6 +42,17 @@ public class ShellHandleImpl implements ShellHandle
          settingsBuilder.terminal(new ForgeTerminal(settings.terminal()));
       }
       this.shell = shellFactory.createShell(settings.currentResource(), settingsBuilder.create());
+      ShellImpl shellImpl = (ShellImpl) shell;
+      if (settings.name() != null)
+      {
+         shellImpl.setName(settings.name());
+      }
+      if (settings.desktop() != null)
+      {
+         shellImpl.setDesktop(settings.desktop());
+      }
+      // this will always be embedded
+      shellImpl.setEmbedded(true);
    }
 
    @Override

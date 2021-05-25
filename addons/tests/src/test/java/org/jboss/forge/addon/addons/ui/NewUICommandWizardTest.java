@@ -1,12 +1,11 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.addon.addons.ui;
 
-import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.addons.facets.AddonTestFacet;
 import org.jboss.forge.addon.addons.facets.FurnaceVersionFacet;
@@ -16,17 +15,12 @@ import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.ui.controller.CommandController;
 import org.jboss.forge.addon.ui.test.UITestHarness;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
 import org.jboss.forge.furnace.Furnace;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import javax.inject.Inject;
 
 /**
  * 
@@ -36,43 +30,19 @@ import javax.inject.Inject;
 @RunWith(Arquillian.class)
 public class NewUICommandWizardTest
 {
-   @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:addons"),
-            @AddonDependency(name = "org.jboss.forge.addon:ui"),
-            @AddonDependency(name = "org.jboss.forge.addon:ui-test-harness"),
-            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi"),
-            @AddonDependency(name = "org.jboss.forge.addon:parser-java"),
-            @AddonDependency(name = "org.jboss.forge.addon:maven"),
-            @AddonDependency(name = "org.jboss.forge.addon:projects")
-   })
-   public static ForgeArchive getDeployment()
-   {
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.addon:addons"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui-test-harness"),
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:parser-java"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects")
-               );
-      return archive;
-   }
-
-   @Inject
    private ProjectFactory projectFactory;
-
-   @Inject
    private FacetFactory facetFactory;
-
-   @Inject
    private UITestHarness testHarness;
-
-   @Inject
    private Furnace furnace;
+
+   @Before
+   public void setUp()
+   {
+      projectFactory = SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class).get();
+      facetFactory = SimpleContainer.getServices(getClass().getClassLoader(), FacetFactory.class).get();
+      testHarness = SimpleContainer.getServices(getClass().getClassLoader(), UITestHarness.class).get();
+      furnace = SimpleContainer.getFurnace(getClass().getClassLoader());
+   }
 
    @Test
    public void testDefaultCommandNameBasedOnTypeNameUpperCaseWithCommandSuffix() throws Exception

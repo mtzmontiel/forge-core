@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -39,14 +39,14 @@ public class JTAFacetImpl_1_2 extends AbstractJTAFacetImpl implements JTAFacet_1
    @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("1.2");
+      return SingleVersion.valueOf("1.2");
    }
 
    @Override
    protected Map<Dependency, List<Dependency>> getRequiredDependencyOptions()
    {
       Map<Dependency, List<Dependency>> result = new HashMap<>();
-      result.put(JTA_API, Arrays.asList(JTA_API));
+      result.put(JTA_API, Arrays.asList(JTA_API, JAVAEE7));
       return result;
    }
 }

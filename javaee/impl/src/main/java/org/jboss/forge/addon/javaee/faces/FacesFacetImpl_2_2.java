@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.faces;
 
 import java.util.Arrays;
@@ -43,7 +42,7 @@ public class FacesFacetImpl_2_2 extends AbstractFacesFacetImpl<WebFacesConfigDes
    @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("2.2");
+      return SingleVersion.valueOf("2.2");
    }
 
    @Override

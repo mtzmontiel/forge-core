@@ -1,13 +1,15 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.controller;
 
+import java.util.List;
+
 import org.jboss.forge.addon.ui.command.UICommand;
+import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
 import org.jboss.forge.addon.ui.wizard.UIWizard;
 import org.jboss.forge.addon.ui.wizard.UIWizardStep;
@@ -54,4 +56,14 @@ public interface WizardCommandController extends CommandController
     *            navigation is not possible
     */
    WizardCommandController previous() throws Exception;
+
+   /**
+    * Return the wizard steps {@link UICommandMetadata} returned from
+    * {@link UIWizard#getMetadata(org.jboss.forge.addon.ui.context.UIContext)}
+    * 
+    * Steps that do not add any input to the {@link UIBuilder} object passed in
+    * {@link UIWizardStep#initializeUI(org.jboss.forge.addon.ui.context.UIBuilder)} will <b>NOT</b> be added to the
+    * result list.
+    */
+   List<UICommandMetadata> getWizardStepsMetadata();
 }

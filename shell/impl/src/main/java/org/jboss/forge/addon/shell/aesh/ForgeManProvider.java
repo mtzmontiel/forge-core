@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 
 import org.jboss.aesh.console.helper.ManProvider;
 import org.jboss.forge.addon.convert.Converter;
+import org.jboss.forge.addon.convert.ConverterFactory;
 import org.jboss.forge.addon.shell.ShellImpl;
 import org.jboss.forge.addon.shell.ui.ShellContextImpl;
 import org.jboss.forge.addon.ui.command.CommandFactory;
@@ -27,14 +28,21 @@ import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.input.InputComponent;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.addon.ui.input.ManyValued;
 import org.jboss.forge.addon.ui.input.SelectComponent;
+import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
 import org.jboss.forge.addon.ui.util.InputComponents;
 import org.jboss.forge.addon.ui.wizard.UIWizard;
+import org.jboss.forge.furnace.util.OperatingSystemUtils;
 import org.jboss.forge.furnace.util.Streams;
 
 /**
+ * {@link ManProvider} implementation
+ * 
  * @author <a href="mailto:stale.pedersen@jboss.org">Ståle W. Pedersen</a>
+ * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
+ * @author <a href="mailto:ggastald@redhat.com">George Gastaldi</a>
  */
 public class ForgeManProvider implements ManProvider
 {
@@ -42,29 +50,23 @@ public class ForgeManProvider implements ManProvider
 
    private final ShellImpl shell;
    private final CommandFactory manager;
+   private final ConverterFactory converterFactory;
+   private final InputComponentFactory inputComponentFactory;
+   private final CommandLineUtil commandLineUtil;
+   private final Comparator<? super InputComponent<?, ?>> SHORTNAME_COMPARATOR = (left, right) -> Character
+            .valueOf(left.getShortName()).compareTo(right.getShortName());
 
-   private final Comparator<? super InputComponent<?, ?>> shortNameComparator = new Comparator<InputComponent<?, ?>>()
-   {
-      @Override
-      public int compare(InputComponent<?, ?> left, InputComponent<?, ?> right)
-      {
-         return new Character(left.getShortName()).compareTo(right.getShortName());
-      }
-   };
+   private final Comparator<? super InputComponent<?, ?>> NAME_COMPARATOR = (left, right) -> left.getName()
+            .compareTo(right.getName());
 
-   private final Comparator<? super InputComponent<?, ?>> nameComparator = new Comparator<InputComponent<?, ?>>()
-   {
-      @Override
-      public int compare(InputComponent<?, ?> left, InputComponent<?, ?> right)
-      {
-         return left.getName().compareTo(right.getName());
-      }
-   };
-
-   public ForgeManProvider(ShellImpl shell, CommandFactory manager)
+   public ForgeManProvider(ShellImpl shell, CommandFactory manager, ConverterFactory converterFactory,
+            InputComponentFactory inputComponentFactory, CommandLineUtil commandLineUtil)
    {
       this.shell = shell;
       this.manager = manager;
+      this.converterFactory = converterFactory;
+      this.inputComponentFactory = inputComponentFactory;
+      this.commandLineUtil = commandLineUtil;
    }
 
    @Override
@@ -75,6 +77,10 @@ public class ForgeManProvider implements ManProvider
          UICommand cmd = manager.getCommandByName(context, command);
          if (cmd != null)
          {
+            if (!cmd.isEnabled(context))
+            {
+               return null;
+            }
             URL docLocation = cmd.getMetadata(context).getDocLocation();
             if (docLocation != null)
             {
@@ -86,7 +92,8 @@ public class ForgeManProvider implements ManProvider
                {
                   log.log(Level.SEVERE,
                            "Could not open man page document stream URL [" + docLocation.toExternalForm()
-                                    + "] for command [" + cmd.getMetadata(context).getType().getName() + "].", e);
+                                    + "] for command [" + cmd.getMetadata(context).getType().getName() + "].",
+                           e);
                }
             }
             return buildDefaultManPage(cmd, context);
@@ -118,16 +125,21 @@ public class ForgeManProvider implements ManProvider
                inputs.add(input);
                return this;
             }
+
+            @Override
+            public InputComponentFactory getInputComponentFactory()
+            {
+               return inputComponentFactory;
+            }
          });
 
          result = result.replaceAll("%name%", manager.getCommandName(context, cmd));
          result = result.replaceAll("%description%", cmd.getMetadata(context).getCategory().toString());
 
          result = result.replaceAll("%synopsis%", buildSynopsis(cmd, context, inputs));
-         result = result.replaceAll("%options%", buildOptions(cmd, context, inputs));
+         result = result.replaceAll("%options%", buildOptions(cmd, context, inputs).trim());
          result = result.replaceAll("%addon%", getSourceAddonName(cmd, context));
          result = result.replaceAll("%year%", String.valueOf(Calendar.getInstance().get(Calendar.YEAR)));
-
          return new ByteArrayInputStream(result.getBytes());
       }
       catch (Exception e)
@@ -146,7 +158,7 @@ public class ForgeManProvider implements ManProvider
       StringBuilder result = new StringBuilder();
       result.append(manager.getCommandName(context, cmd)).append(" [-");
 
-      Collections.sort(inputs, shortNameComparator);
+      Collections.sort(inputs, SHORTNAME_COMPARATOR);
       for (InputComponent<?, ?> input : inputs)
       {
          if (input.getShortName() != InputComponents.DEFAULT_SHORT_NAME && Boolean.class.equals(input.getValueType()))
@@ -157,7 +169,7 @@ public class ForgeManProvider implements ManProvider
 
       result.append("] ");
 
-      Collections.sort(inputs, nameComparator);
+      Collections.sort(inputs, NAME_COMPARATOR);
       InputComponent<?, ?> arguments = null;
       for (InputComponent<?, ?> input : inputs)
       {
@@ -172,7 +184,7 @@ public class ForgeManProvider implements ManProvider
             {
                result.append("-").append(input.getShortName()).append(" ");
             }
-            result.append("--").append(input.getName()).append("] ");
+            result.append("--").append(commandLineUtil.toOptionName(input.getName())).append("] ");
             result.append(input.getValueType().getSimpleName()).append(" ");
          }
       }
@@ -191,14 +203,22 @@ public class ForgeManProvider implements ManProvider
    {
       StringBuilder result = new StringBuilder();
 
-      if (cmd.getMetadata(context).getDescription() != null)
-         result.append(cmd.getMetadata(context).getDescription());
-      if (UIWizard.class.isAssignableFrom(cmd.getMetadata(context).getType()))
+      UICommandMetadata metadata = cmd.getMetadata(context);
+      if (metadata.getLongDescription() != null)
+      {
+         result.append(metadata.getLongDescription().trim());
+      }
+      else if (metadata.getDescription() != null)
+      {
+         result.append(metadata.getDescription().trim());
+      }
+      if (UIWizard.class.isAssignableFrom(metadata.getType()))
+      {
          result.append(" (*multi-step wizard* - some options may not be auto-documented in this man page.)");
+      }
+      result.append(OperatingSystemUtils.getLineSeparator()).append(OperatingSystemUtils.getLineSeparator());
 
-      result.append("\n\n");
-
-      Collections.sort(inputs, shortNameComparator);
+      Collections.sort(inputs, SHORTNAME_COMPARATOR);
       InputComponent<?, ?> arguments = null;
       for (InputComponent<?, ?> input : inputs)
       {
@@ -214,8 +234,8 @@ public class ForgeManProvider implements ManProvider
             else
                result.append("   ");
 
-            result.append("--").append(input.getName()).append("*");
-            result.append("\n");
+            result.append("--").append(commandLineUtil.toOptionName(input.getName())).append("*");
+            result.append(OperatingSystemUtils.getLineSeparator());
             result.append("        ");
 
             if (!input.getName().equals(input.getLabel()))
@@ -235,15 +255,14 @@ public class ForgeManProvider implements ManProvider
             {
                result.append(" Valid choices: [");
                Iterable<?> valueChoices = ((SelectComponent) input).getValueChoices();
-               Converter itemLabelConverter = ((SelectComponent) input).getItemLabelConverter();
+               Converter itemLabelConverter = InputComponents.getItemLabelConverter(converterFactory,
+                        ((SelectComponent) input));
                for (Object choice : valueChoices)
                {
                   if (choice != null)
                   {
-                     Object itemLabel = choice.toString();
-                     if (itemLabelConverter != null)
-                        itemLabel = itemLabelConverter.convert(choice);
-                     result.append("\"" + itemLabel + "\" ");
+                     Object itemLabel = itemLabelConverter.convert(choice);
+                     result.append("\"").append(itemLabel).append("\" ");
                   }
                }
                result.append("] ");
@@ -263,7 +282,7 @@ public class ForgeManProvider implements ManProvider
                               Object itemLabel = value.toString();
                               if (itemLabelConverter != null)
                                  itemLabel = itemLabelConverter.convert(value);
-                              result.append("\"" + itemLabel + "\" ");
+                              result.append("\"").append(itemLabel).append("\" ");
                            }
                         }
                      }
@@ -275,7 +294,7 @@ public class ForgeManProvider implements ManProvider
                            Object itemLabel = value.toString();
                            if (itemLabelConverter != null)
                               itemLabel = itemLabelConverter.convert(value);
-                           result.append("\"" + itemLabel + "\" ");
+                           result.append("\"").append(itemLabel).append("\" ");
                         }
                      }
                   }
@@ -286,17 +305,21 @@ public class ForgeManProvider implements ManProvider
             {
                result.append(" defaults to: [" + input.getValue() + "]");
             }
-
-            result.append("\n\n");
+            result.append(OperatingSystemUtils.getLineSeparator()).append(OperatingSystemUtils.getLineSeparator());
          }
       }
 
       if (arguments != null)
       {
          result.append("[");
-         result.append(arguments.getLabel() == null ? "L " + arguments.getValueType().getSimpleName()
-                  + "; ... arguments"
-                  : arguments.getLabel());
+         if (arguments.getLabel() == null)
+         {
+            result.append("L ").append(arguments.getValueType().getSimpleName()).append("; ... arguments");
+         }
+         else
+         {
+            result.append(arguments.getLabel());
+         }
          result.append("] ");
       }
 

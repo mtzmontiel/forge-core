@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.resource;
 
 import java.io.File;
@@ -14,34 +13,41 @@ import java.io.OutputStream;
 
 /**
  * File Operations
- * 
+ *
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
 public interface FileOperations
 {
-   public boolean fileExists(File file);
+   boolean fileExists(File file);
 
-   public boolean fileExistsAndIsDirectory(File file);
+   boolean fileExistsAndIsDirectory(File file);
 
-   public File[] listFiles(File file);
+   File[] listFiles(File file);
 
-   public long getFileLength(File file);
+   long getFileLength(File file);
 
-   public boolean renameFile(File src, File dest);
+   boolean renameFile(File src, File dest);
 
-   public void copyFile(File src, File dest) throws IOException;
+   void copyFile(File src, File dest) throws IOException;
 
-   public boolean deleteFile(File file);
+   boolean deleteFile(File file);
 
-   public void deleteFileOnExit(File file);
+   boolean deleteFile(File file, boolean recursive);
 
-   public boolean createNewFile(File file) throws IOException;
+   void deleteFileOnExit(File file);
 
-   public boolean mkdir(File file);
+   boolean createNewFile(File file) throws IOException;
 
-   public boolean mkdirs(File file);
+   boolean mkdir(File file);
 
-   public OutputStream createOutputStream(File file) throws IOException;
+   boolean mkdirs(File file);
 
-   public InputStream createInputStream(File file) throws IOException;
+   OutputStream createOutputStream(File file) throws IOException;
+
+   OutputStream createOutputStream(File file, boolean append) throws IOException;
+
+   InputStream createInputStream(File file) throws IOException;
+
+   File move(File source, File target) throws IOException;
+
 }

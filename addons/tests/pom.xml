@@ -3,7 +3,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>addons-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
    </parent>
    <artifactId>addons-tests</artifactId>
    <name>Forge - Addon Development Addon Tests</name>
@@ -12,7 +12,7 @@
       <!-- Furnace Container -->
       <dependency>
          <groupId>org.jboss.forge.furnace.container</groupId>
-         <artifactId>cdi</artifactId>
+         <artifactId>simple</artifactId>
          <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
@@ -25,11 +25,6 @@
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
          <artifactId>javaee</artifactId>
-         <classifier>forge-addon</classifier>
-      </dependency>
-      <dependency>
-         <groupId>org.jboss.forge.addon</groupId>
-         <artifactId>shell</artifactId>
          <classifier>forge-addon</classifier>
       </dependency>
       <dependency>
@@ -60,4 +55,23 @@
          <scope>test</scope>
       </dependency>
    </dependencies>
+
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-install-plugin</artifactId>
+            <configuration>
+               <skip>true</skip>
+            </configuration>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-deploy-plugin</artifactId>
+            <configuration>
+               <skip>true</skip>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
 </project>

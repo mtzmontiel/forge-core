@@ -1,19 +1,10 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.servlet;
-
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.inject.Inject;
 
 import org.jboss.forge.addon.dependencies.Dependency;
 import org.jboss.forge.addon.dependencies.builder.DependencyBuilder;
@@ -26,6 +17,13 @@ import org.jboss.forge.furnace.versions.SingleVersion;
 import org.jboss.forge.furnace.versions.Version;
 import org.jboss.shrinkwrap.descriptor.api.DescriptorImporter;
 import org.jboss.shrinkwrap.descriptor.api.webapp30.WebAppDescriptor;
+
+import javax.inject.Inject;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ServletFacetImpl_3_0 extends AbstractServletFacet<WebAppDescriptor> implements ServletFacet_3_0
 {
@@ -41,14 +39,14 @@ public class ServletFacetImpl_3_0 extends AbstractServletFacet<WebAppDescriptor>
    @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("3.0");
+      return SingleVersion.valueOf("3.0");
    }
 
    @Override
    protected Map<Dependency, List<Dependency>> getRequiredDependencyOptions()
    {
       Map<Dependency, List<Dependency>> map = new LinkedHashMap<>();
-      map.put(JAVAX_SERVLET_API, Arrays.asList(JAVAX_SERVLET_API));
+      map.put(JAVAX_SERVLET_API, Arrays.asList(JAVAX_SERVLET_API, JAVAEE6));
       return map;
    }
 
@@ -96,4 +94,5 @@ public class ServletFacetImpl_3_0 extends AbstractServletFacet<WebAppDescriptor>
       String output = descriptor.exportAsString();
       configFile.setContents(output);
    }
+
 }

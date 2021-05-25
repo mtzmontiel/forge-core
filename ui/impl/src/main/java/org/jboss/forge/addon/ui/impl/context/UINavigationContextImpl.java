@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.context;
 
 import org.jboss.forge.addon.ui.command.UICommand;
@@ -22,10 +21,14 @@ public class UINavigationContextImpl implements UINavigationContext
 {
 
    private final UIContext context;
+   private final UICommand initialCommand;
+   private final UICommand currentCommand;
 
-   public UINavigationContextImpl(UIContext context)
+   public UINavigationContextImpl(UIContext context, UICommand initialCommand, UICommand currentCommand)
    {
       this.context = context;
+      this.initialCommand = initialCommand;
+      this.currentCommand = currentCommand;
    }
 
    @Override
@@ -39,5 +42,17 @@ public class UINavigationContextImpl implements UINavigationContext
    public NavigationResult navigateTo(Class<? extends UICommand> next, Class<? extends UICommand>... additional)
    {
       return Results.navigateTo(next, additional);
+   }
+
+   @Override
+   public UICommand getInitialCommand()
+   {
+      return initialCommand;
+   }
+
+   @Override
+   public UICommand getCurrentCommand()
+   {
+      return currentCommand;
    }
 }

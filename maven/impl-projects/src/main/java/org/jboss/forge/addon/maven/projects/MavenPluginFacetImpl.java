@@ -1,10 +1,9 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.maven.projects;
 
 import java.util.ArrayList;
@@ -12,8 +11,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.enterprise.context.Dependent;
 
 import org.apache.maven.model.Build;
 import org.apache.maven.model.BuildBase;
@@ -38,8 +35,7 @@ import org.jboss.forge.furnace.util.Strings;
  * @author <a href="mailto:paul.bakker.nl@gmail.com">Paul Bakker</a>
  */
 
-@Dependent
-public class MavenPluginFacetImpl extends AbstractFacet<Project> implements MavenPluginFacet
+public class MavenPluginFacetImpl extends AbstractFacet<Project>implements MavenPluginFacet
 {
    private static final String DEFAULT_GROUPID = "org.apache.maven.plugins";
 

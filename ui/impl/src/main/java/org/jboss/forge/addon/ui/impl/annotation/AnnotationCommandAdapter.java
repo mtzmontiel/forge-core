@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.annotation;
 
 import java.lang.annotation.Annotation;
@@ -20,7 +19,7 @@ import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.context.UIValidationContext;
-import org.jboss.forge.addon.ui.impl.input.InputComponentProducer;
+import org.jboss.forge.addon.ui.impl.input.InputComponentFactoryImpl;
 import org.jboss.forge.addon.ui.input.InputComponent;
 import org.jboss.forge.addon.ui.input.SelectComponent;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
@@ -40,12 +39,12 @@ import org.jboss.forge.furnace.util.Predicate;
 public class AnnotationCommandAdapter implements UICommand
 {
    private final List<InputComponent<?, ?>> inputs = new ArrayList<>();
-   private final InputComponentProducer factory;
+   private final InputComponentFactoryImpl factory;
    private final Method method;
    private final Object instance;
    private final List<Predicate<UIContext>> enabledPredicates;
 
-   public AnnotationCommandAdapter(Method method, Object instance, InputComponentProducer factory,
+   public AnnotationCommandAdapter(Method method, Object instance, InputComponentFactoryImpl factory,
             List<Predicate<UIContext>> enabledPredicates)
    {
       this.method = method;
@@ -64,7 +63,8 @@ public class AnnotationCommandAdapter implements UICommand
          name = method.getName();
       }
       return Metadata.forCommand(method.getDeclaringClass()).name(name).description(ann.help())
-               .category(Categories.create(ann.categories()));
+               .category(Categories.create(ann.categories()))
+               .deprecated(method.getAnnotation(Deprecated.class) != null);
    }
 
    @Override

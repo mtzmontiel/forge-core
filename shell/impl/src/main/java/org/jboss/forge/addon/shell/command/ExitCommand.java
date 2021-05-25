@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.shell.command;
 
 import javax.inject.Inject;
@@ -36,9 +42,11 @@ public class ExitCommand extends AbstractShellCommand
    @Override
    public Result execute(UIExecutionContext context) throws Exception
    {
-      Shell shell = (Shell) context.getUIContext().getProvider();
+      UIContext uiContext = context.getUIContext();
+      Shell shell = (Shell) uiContext.getProvider();
       shell.getConsole().stop();
       forge.stop();
+      uiContext.getAttributeMap().put("org.jboss.forge.exit", Boolean.TRUE);
       return Results.success();
    }
 }

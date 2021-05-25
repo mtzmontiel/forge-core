@@ -1,25 +1,9 @@
-/*
- * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
- * as indicated by the @author tags. See the copyright.txt file in the
- * distribution for a full listing of individual contributors.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.bootstrap;
 
 import java.io.File;
@@ -51,13 +35,15 @@ public class LoggingConfigurationLocator implements ConfigurationLocator
    {
       // First look for the property
       final String propLoc = System.getProperty("logging.configuration");
-      if (propLoc != null) try
-      {
-         return new URL(propLoc).openStream();
-      } catch (IOException e)
-      {
-         System.err.printf("Unable to read the logging configuration from '%s' (%s)%n", propLoc, e);
-      }
+      if (propLoc != null)
+         try
+         {
+            return new URL(propLoc).openStream();
+         }
+         catch (IOException e)
+         {
+            System.err.printf("Unable to read the logging configuration from '%s' (%s)%n", propLoc, e);
+         }
       File[] files = null;
       // Second attempt to find the configuration in the users .forge directory
       final File userForgeDir = OperatingSystemUtils.getUserForgeDir();
@@ -73,7 +59,7 @@ public class LoggingConfigurationLocator implements ConfigurationLocator
       // Finally default to $FORGE_HOME/logging.properties
       final File forgeHomeDir = OperatingSystemUtils.getForgeHomeDir();
       // Look for a logging.properties file
-      if (forgeHomeDir.isDirectory())
+      if (forgeHomeDir != null && forgeHomeDir.isDirectory())
       {
          files = forgeHomeDir.listFiles(LOGGING_CONFIG_FILTER);
       }

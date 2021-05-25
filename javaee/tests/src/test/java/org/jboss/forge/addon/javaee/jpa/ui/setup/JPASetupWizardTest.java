@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.jpa.ui.setup;
 
 import java.util.List;
@@ -33,16 +32,16 @@ import org.jboss.forge.addon.ui.controller.WizardCommandController;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.test.UITestHarness;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.descriptor.api.persistence.PersistenceCommonDescriptor;
 import org.jboss.shrinkwrap.descriptor.api.persistence.PersistenceUnitCommon;
 import org.jboss.shrinkwrap.descriptor.api.persistence.PropertiesCommon;
 import org.jboss.shrinkwrap.descriptor.api.persistence21.Property;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -51,25 +50,15 @@ import org.junit.runner.RunWith;
 public class JPASetupWizardTest
 {
    @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:ui"),
+   @AddonDependencies({
             @AddonDependency(name = "org.jboss.forge.addon:ui-test-harness"),
             @AddonDependency(name = "org.jboss.forge.addon:javaee"),
-            @AddonDependency(name = "org.jboss.forge.addon:maven")
+            @AddonDependency(name = "org.jboss.forge.addon:maven"),
+            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      return ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:javaee"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui-test-harness")
-               );
+      return ShrinkWrap.create(AddonArchive.class).addBeansXML();
    }
 
    @Inject
@@ -85,47 +74,56 @@ public class JPASetupWizardTest
    private ProjectFactory projectFactory;
 
    @Inject
-   private UITestHarness testHarness;
+   private UITestHarness uiTestHarness;
+
+   private Project project;
+
+   @Before
+   public void setUp()
+   {
+      project = projectFactory.createTempProject();
+   }
 
    @Test
    public void testSetup() throws Exception
    {
-      Project project = projectFactory.createTempProject();
-      WizardCommandController tester = testHarness.createWizardController(JPASetupWizard.class,
-               project.getRoot());
-
-      tester.initialize();
-
-      Assert.assertFalse(tester.canMoveToPreviousStep());
-      // Setting UI values
-      tester.setValueFor("jpaVersion", "2.1");
-      tester.setValueFor("provider", defaultProvider);
-      tester.setValueFor("container", customJTAProvider);
-      Assert.assertTrue(tester.canMoveToNextStep());
-
-      tester.next().initialize();
-
-      Assert.assertFalse(tester.isValid());
-      tester.setValueFor("dataSourceName", "java:jboss:jta-ds");
-      Assert.assertTrue(tester.isValid());
-      final AtomicInteger counter = new AtomicInteger();
-      tester.getContext().addCommandExecutionListener(new AbstractCommandExecutionListener()
+      try (WizardCommandController controller = uiTestHarness.createWizardController(JPASetupWizard.class,
+               project.getRoot()))
       {
-         @Override
-         public void postCommandExecuted(UICommand command, UIExecutionContext context, Result result)
+         controller.initialize();
+
+         Assert.assertFalse(controller.canMoveToPreviousStep());
+         // Setting UI values
+         controller.setValueFor("jpaVersion", "2.1");
+         controller.setValueFor("jpaProvider", defaultProvider);
+         controller.setValueFor("jpaContainer", customJTAProvider);
+         Assert.assertTrue(controller.canMoveToNextStep());
+
+         controller.next().initialize();
+
+         Assert.assertFalse(controller.isValid());
+         controller.setValueFor("dataSourceName", "java:jboss:jta-ds");
+         Assert.assertTrue(controller.isValid());
+         final AtomicInteger counter = new AtomicInteger();
+         controller.getContext().addCommandExecutionListener(new AbstractCommandExecutionListener()
          {
-            counter.incrementAndGet();
-         }
-      });
-      tester.execute();
+            @Override
+            public void postCommandExecuted(UICommand command, UIExecutionContext context, Result result)
+            {
+               counter.incrementAndGet();
+            }
+         });
+         controller.execute();
 
-      UISelection<Object> selection = tester.getContext().getSelection();
-      Assert.assertFalse(selection.isEmpty());
-      Assert.assertTrue(selection.get() instanceof FileResource);
-      Assert.assertEquals("persistence.xml", ((FileResource) selection.get()).getName());
+         UISelection<Object> selection = controller.getContext().getSelection();
 
-      // Ensure that the two pages were invoked
-      Assert.assertEquals(2, counter.get());
+         Assert.assertFalse(selection.isEmpty());
+         Assert.assertTrue(selection.get() instanceof FileResource);
+         Assert.assertEquals("persistence.xml", ((FileResource) selection.get()).getName());
+
+         // Ensure that the two pages were invoked
+         Assert.assertEquals(2, counter.get());
+      }
 
       // Reload to refresh facets.
       project = projectFactory.findProject(project.getRoot());
@@ -142,116 +140,118 @@ public class JPASetupWizardTest
    public void testSetupDuplicateUnitName() throws Exception
    {
       // Execute SUT
-      final Project project = projectFactory.createTempProject();
-      WizardCommandController tester = testHarness.createWizardController(JPASetupWizard.class,
-               project.getRoot());
+      try (WizardCommandController controller = uiTestHarness.createWizardController(JPASetupWizard.class,
+               project.getRoot()))
+      {
+         controller.initialize();
 
-      tester.initialize();
+         Assert.assertFalse(controller.canMoveToPreviousStep());
+         // Setting UI values
+         controller.setValueFor("jpaProvider", defaultProvider);
+         controller.setValueFor("jpaContainer", eap6Container);
+         Assert.assertTrue(controller.canMoveToNextStep());
 
-      Assert.assertFalse(tester.canMoveToPreviousStep());
-      // Setting UI values
-      tester.setValueFor("provider", defaultProvider);
-      tester.setValueFor("container", eap6Container);
-      Assert.assertTrue(tester.canMoveToNextStep());
+         controller.next().initialize();
 
-      tester.next().initialize();
+         Result result = controller.execute();
+         Assert.assertFalse(result instanceof Failed);
 
-      Result result = tester.execute();
-      Assert.assertFalse(result instanceof Failed);
+         // Check SUT values
+         PersistenceCommonDescriptor config = (PersistenceCommonDescriptor) project.getFacet(JPAFacet.class)
+                  .getConfig();
+         List<PersistenceUnitCommon> allUnits = config.getAllPersistenceUnit();
+         Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
+                  + PersistenceOperations.DEFAULT_UNIT_SUFFIX, allUnits.get(0).getName());
+         Assert.assertEquals(1, allUnits.size());
 
-      // Check SUT values
-      PersistenceCommonDescriptor config = (PersistenceCommonDescriptor) project.getFacet(JPAFacet.class).getConfig();
-      List<PersistenceUnitCommon> allUnits = config.getAllPersistenceUnit();
-      Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
-               + PersistenceOperations.DEFAULT_UNIT_SUFFIX, allUnits.get(0).getName());
-      Assert.assertEquals(1, allUnits.size());
+         WizardCommandController tester2 = uiTestHarness.createWizardController(JPASetupWizard.class,
+                  project.getRoot());
 
-      WizardCommandController tester2 = testHarness.createWizardController(JPASetupWizard.class,
-               project.getRoot());
+         // Launch
+         tester2.initialize();
 
-      // Launch
-      tester2.initialize();
+         Assert.assertFalse(tester2.canMoveToPreviousStep());
+         // Setting UI values
+         tester2.setValueFor("jpaProvider", defaultProvider);
+         tester2.setValueFor("jpaContainer", eap6Container);
+         Assert.assertTrue(tester2.canMoveToNextStep());
 
-      Assert.assertFalse(tester2.canMoveToPreviousStep());
-      // Setting UI values
-      tester2.setValueFor("provider", defaultProvider);
-      tester2.setValueFor("container", eap6Container);
-      Assert.assertTrue(tester2.canMoveToNextStep());
+         tester2.next().initialize();
 
-      tester2.next().initialize();
+         result = tester2.execute();
+         Assert.assertFalse(result instanceof Failed);
 
-      result = tester2.execute();
-      Assert.assertFalse(result instanceof Failed);
+         config = (PersistenceCommonDescriptor) project.getFacet(JPAFacet.class).getConfig();
+         allUnits = config.getAllPersistenceUnit();
+         Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
+                  + PersistenceOperations.DEFAULT_UNIT_SUFFIX, allUnits.get(0).getName());
+         Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
+                  + PersistenceOperations.DEFAULT_UNIT_SUFFIX + "-1", allUnits.get(1).getName());
+         Assert.assertEquals(2, allUnits.size());
 
-      config = (PersistenceCommonDescriptor) project.getFacet(JPAFacet.class).getConfig();
-      allUnits = config.getAllPersistenceUnit();
-      Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
-               + PersistenceOperations.DEFAULT_UNIT_SUFFIX, allUnits.get(0).getName());
-      Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
-               + PersistenceOperations.DEFAULT_UNIT_SUFFIX + "-1", allUnits.get(1).getName());
-      Assert.assertEquals(2, allUnits.size());
+         // testing the overwriting of the first persistence unit
+         WizardCommandController tester3 = uiTestHarness.createWizardController(JPASetupWizard.class,
+                  project.getRoot());
+         // Launch
+         tester3.initialize();
+         Assert.assertFalse(tester3.canMoveToPreviousStep());
+         // Setting UI values
+         tester3.setValueFor("jpaProvider", defaultProvider);
+         tester3.setValueFor("jpaContainer", eap6Container);
 
-      // testing the overwriting of the first persistence unit
-      WizardCommandController tester3 = testHarness.createWizardController(JPASetupWizard.class,
-               project.getRoot());
-      // Launch
-      tester3.initialize();
-      Assert.assertFalse(tester3.canMoveToPreviousStep());
-      // Setting UI values
-      tester3.setValueFor("provider", defaultProvider);
-      tester3.setValueFor("container", eap6Container);
+         Assert.assertTrue(tester3.canMoveToNextStep());
+         tester3.next().initialize();
+         tester3.setValueFor("persistenceUnitName", project.getFacet(MetadataFacet.class).getProjectName()
+                  + PersistenceOperations.DEFAULT_UNIT_SUFFIX);
+         tester3.setValueFor("overwritePersistenceUnit", true);
 
-      Assert.assertTrue(tester3.canMoveToNextStep());
-      tester3.next().initialize();
-      tester3.setValueFor("persistenceUnitName", project.getFacet(MetadataFacet.class).getProjectName()
-               + PersistenceOperations.DEFAULT_UNIT_SUFFIX);
-      tester3.setValueFor("overwritePersistenceUnit", true);
+         result = tester3.execute();
+         Assert.assertFalse(result instanceof Failed);
 
-      result = tester3.execute();
-      Assert.assertFalse(result instanceof Failed);
-
-      // Check SUT values
-      config = (PersistenceCommonDescriptor) project.getFacet(JPAFacet.class).getConfig();
-      allUnits = config.getAllPersistenceUnit();
-      Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
-               + PersistenceOperations.DEFAULT_UNIT_SUFFIX, allUnits.get(0).getName());
-      Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
-               + PersistenceOperations.DEFAULT_UNIT_SUFFIX + "-1", allUnits.get(1).getName());
-      Assert.assertEquals(2, allUnits.size());
+         // Check SUT values
+         config = (PersistenceCommonDescriptor) project.getFacet(JPAFacet.class).getConfig();
+         allUnits = config.getAllPersistenceUnit();
+         Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
+                  + PersistenceOperations.DEFAULT_UNIT_SUFFIX, allUnits.get(0).getName());
+         Assert.assertEquals(project.getFacet(MetadataFacet.class).getProjectName()
+                  + PersistenceOperations.DEFAULT_UNIT_SUFFIX + "-1", allUnits.get(1).getName());
+         Assert.assertEquals(2, allUnits.size());
+      }
    }
 
    @Test
    public void testSetupMetadata() throws Exception
    {
       // Execute SUT
-      Project project = projectFactory.createTempProject();
-      WizardCommandController tester = testHarness.createWizardController(JPASetupWizard.class,
-               project.getRoot());
-
-      tester.initialize();
-
-      Assert.assertFalse(tester.canMoveToPreviousStep());
-      // Setting UI values
-      tester.setValueFor("provider", defaultProvider);
-      tester.setValueFor("container", customJTAProvider);
-      tester.setValueFor("configureMetadata", Boolean.TRUE);
-      Assert.assertTrue(tester.canMoveToNextStep());
-
-      tester.next().initialize();
-
-      tester.setValueFor("dataSourceName", "java:jboss:jta-ds");
-      final AtomicInteger counter = new AtomicInteger();
-      tester.getContext().addCommandExecutionListener(new AbstractCommandExecutionListener()
+      try (WizardCommandController controller = uiTestHarness.createWizardController(JPASetupWizard.class,
+               project.getRoot()))
       {
-         @Override
-         public void postCommandExecuted(UICommand command, UIExecutionContext context, Result result)
+         controller.initialize();
+
+         Assert.assertFalse(controller.canMoveToPreviousStep());
+         // Setting UI values
+         controller.setValueFor("jpaProvider", defaultProvider);
+         controller.setValueFor("jpaContainer", customJTAProvider);
+         controller.setValueFor("configureMetadata", Boolean.TRUE);
+         Assert.assertTrue(controller.canMoveToNextStep());
+
+         controller.next().initialize();
+
+         controller.setValueFor("dataSourceName", "java:jboss:jta-ds");
+         final AtomicInteger counter = new AtomicInteger();
+         controller.getContext().addCommandExecutionListener(new AbstractCommandExecutionListener()
          {
-            counter.incrementAndGet();
-         }
-      });
-      tester.execute();
-      // Ensure that the two pages were invoked
-      Assert.assertEquals(2, counter.get());
+            @Override
+            public void postCommandExecuted(UICommand command, UIExecutionContext context, Result result)
+            {
+               counter.incrementAndGet();
+            }
+         });
+         controller.execute();
+
+         // Ensure that the two pages were invoked
+         Assert.assertEquals(2, counter.get());
+      }
 
       // Reload to refresh facets.
       project = projectFactory.findProject(project.getRoot());

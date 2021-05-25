@@ -1,10 +1,9 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.git.facet;
 
 import static org.jboss.forge.addon.git.constants.GitConstants.GITIGNORE;
@@ -16,8 +15,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-
-import javax.inject.Inject;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -32,19 +29,15 @@ import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
 import org.jboss.forge.addon.resource.ResourceFilter;
+import org.jboss.forge.furnace.addons.AddonRegistry;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.util.Streams;
 
 @FacetConstraint(GitFacet.class)
-public class GitIgnoreFacetImpl extends AbstractFacet<Project> implements GitIgnoreFacet
+public class GitIgnoreFacetImpl extends AbstractFacet<Project>implements GitIgnoreFacet
 {
-
-   @Inject
    private GitIgnoreConfig config;
-
-   @Inject
    private GitUtils gitUtils;
-
-   @Inject
    private ResourceFactory factory;
 
    @Override
@@ -53,15 +46,13 @@ public class GitIgnoreFacetImpl extends AbstractFacet<Project> implements GitIgn
       try
       {
          DirectoryResource cloneDir = cloneDir();
-         String repo = config.remoteRepository();
-         // TODO ShellMessages.info(shell, "Cloning " + repo + " into " + cloneDir.getFullyQualifiedName());
-         Git git = gitUtils.clone(cloneDir, repo);
-         gitUtils.close(git);
+         String repo = getIgnoreConfig().remoteRepository();
+         Git git = getGitUtils().clone(cloneDir, repo);
+         getGitUtils().close(git);
          return true;
       }
       catch (Exception e)
       {
-         // TODO ShellMessages.error(shell, "Failed to checkout gitignore: " + e);
          return false;
       }
    }
@@ -69,8 +60,8 @@ public class GitIgnoreFacetImpl extends AbstractFacet<Project> implements GitIgn
    @Override
    public boolean isInstalled()
    {
-      File clone = config.localRepository();
-      Resource<File> cloneDir = factory.create(clone);
+      File clone = getIgnoreConfig().localRepository();
+      Resource<File> cloneDir = getResourceFactory().create(clone);
       return cloneDir.exists() && cloneDir.getChild(GIT_DIRECTORY).exists();
    }
 
@@ -105,9 +96,10 @@ public class GitIgnoreFacetImpl extends AbstractFacet<Project> implements GitIgn
    @Override
    public void update() throws IOException, GitAPIException
    {
-      Git git = gitUtils.git(cloneDir());
-      gitUtils.pull(git, 10000);
-      gitUtils.close(git);
+      try (Git git = getGitUtils().git(cloneDir()))
+      {
+         getGitUtils().pull(git, 10000);
+      }
    }
 
    private List<String> listGitignores(DirectoryResource dir)
@@ -132,7 +124,37 @@ public class GitIgnoreFacetImpl extends AbstractFacet<Project> implements GitIgn
 
    private DirectoryResource cloneDir()
    {
-      return factory.create(DirectoryResource.class, config.localRepository());
+      return getResourceFactory().create(DirectoryResource.class, getIgnoreConfig().localRepository());
+   }
+
+   private ResourceFactory getResourceFactory()
+   {
+      if (factory == null)
+      {
+         AddonRegistry addonRegistry = SimpleContainer.getFurnace(getClass().getClassLoader()).getAddonRegistry();
+         factory = addonRegistry.getServices(ResourceFactory.class).get();
+      }
+      return factory;
+   }
+
+   private GitIgnoreConfig getIgnoreConfig()
+   {
+      if (config == null)
+      {
+         AddonRegistry addonRegistry = SimpleContainer.getFurnace(getClass().getClassLoader()).getAddonRegistry();
+         config = addonRegistry.getServices(GitIgnoreConfig.class).get();
+      }
+      return config;
+   }
+
+   private GitUtils getGitUtils()
+   {
+      if (gitUtils == null)
+      {
+         AddonRegistry addonRegistry = SimpleContainer.getFurnace(getClass().getClassLoader()).getAddonRegistry();
+         gitUtils = addonRegistry.getServices(GitUtils.class).get();
+      }
+      return gitUtils;
    }
 
 }

@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.controller;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -22,10 +21,9 @@ import org.jboss.forge.addon.ui.controller.mock.MockPreStepsCommand;
 import org.jboss.forge.addon.ui.impl.mock.MockUIContext;
 import org.jboss.forge.addon.ui.impl.mock.MockUIRuntime;
 import org.jboss.forge.addon.ui.result.Result;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
 import org.junit.Test;
@@ -40,20 +38,19 @@ import org.junit.runner.RunWith;
 public class CommandControllerTest
 {
    @Deployment
-   @Dependencies({ @AddonDependency(name = "org.jboss.forge.addon:ui"),
-            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi") })
-   public static ForgeArchive getDeployment()
+   @AddonDependencies({
+            @AddonDependency(name = "org.jboss.forge.addon:ui"),
+            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
+   })
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap
+               .create(AddonArchive.class)
                .addClasses(ExampleCommand.class, ExampleNoUICommand.class, FlowExampleStep.class,
                         ValidateRequiredCommand.class,
                         FlowExampleWizard.class, MockPreStepsCommand.class)
                .addPackage(MockUIRuntime.class.getPackage())
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui"),
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"));
+               .addBeansXML();
 
       return archive;
    }
@@ -93,6 +90,10 @@ public class CommandControllerTest
       controller.initialize();
       Assert.assertFalse(controller.getInputs().isEmpty());
       Assert.assertTrue(controller.getInputs().containsKey("firstName"));
+      Assert.assertNotNull(controller.getInput("firstName"));
+      Assert.assertTrue(controller.hasInput("firstName"));
+      Assert.assertNull(controller.getInput("dummy"));
+      Assert.assertFalse(controller.hasInput("dummy"));
       controller.setValueFor("firstName", "Forge");
       Assert.assertEquals("Forge", controller.getValueFor("firstName"));
       Assert.assertTrue(controller.isValid());
@@ -101,7 +102,7 @@ public class CommandControllerTest
       Assert.assertEquals("Hello, Forge", result.getMessage());
    }
 
-   @Test(expected = IllegalArgumentException.class)
+   @Test(expected = IllegalStateException.class)
    public void testInitialized() throws Exception
    {
       CommandController controller = controllerFactory.createSingleController(new MockUIContext(), new MockUIRuntime(),
@@ -116,6 +117,9 @@ public class CommandControllerTest
                exampleNoUICommand);
       controller.initialize();
       Assert.assertTrue(controller.getInputs().isEmpty());
+      Assert.assertEquals(0, controller.getInputs().size());
+      Assert.assertNull(controller.getInput("firstName"));
+      Assert.assertFalse(controller.hasInput("firstName"));
       Assert.assertTrue(controller.isValid());
       Assert.assertTrue(controller.canExecute());
       Result result = controller.execute();
@@ -141,6 +145,7 @@ public class CommandControllerTest
       }
    }
 
+   @SuppressWarnings("resource")
    @Test
    public void testPreStepsCommand() throws Exception
    {

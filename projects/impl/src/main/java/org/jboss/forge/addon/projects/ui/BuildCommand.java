@@ -1,17 +1,15 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.projects.ui;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.inject.Inject;
-
+import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.building.ProjectBuilder;
@@ -19,46 +17,40 @@ import org.jboss.forge.addon.projects.facets.PackagingFacet;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.input.UIInputMany;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.output.UIOutput;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
+import org.jboss.forge.furnace.util.Lists;
 
 /**
- *
+ * Executes Build commands
+ * 
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
+@FacetConstraint(PackagingFacet.class)
 public class BuildCommand extends AbstractProjectCommand
 {
-
-   @Inject
-   @WithAttributes(label = "Arguments")
    private UIInputMany<String> arguments;
-
-   @Inject
-   @WithAttributes(label = "No Test")
    private UIInput<Boolean> notest;
-
-   @Inject
-   @WithAttributes(label = "Quiet", description = "Quiet output", shortName = 'q')
    private UIInput<Boolean> quiet;
-
-   @Inject
-   @WithAttributes(label = "Profile")
-   private UIInput<String> profile;
-
-   @Inject
-   private ProjectFactory projectFactory;
+   private UIInputMany<String> profile;
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
-      builder.add(arguments).add(notest).add(profile).add(quiet);
+      InputComponentFactory factory = builder.getInputComponentFactory();
+      arguments = factory.createInputMany("arguments", String.class);
+      notest = factory.createInput("notest", Boolean.class).setLabel("No Test");
+      quiet = factory.createInput("quiet", 'q', Boolean.class).setLabel("Quiet").setDescription("Quiet output");
+      profile = factory.createInputMany("profile", String.class);
+      builder.add(arguments).add(profile).add(notest).add(quiet);
    }
 
    @Override
@@ -78,16 +70,12 @@ public class BuildCommand extends AbstractProjectCommand
 
       if (arguments.getValue() != null && arguments.getValue().iterator().hasNext())
       {
-         List<String> args = new ArrayList<String>();
+         List<String> args = new ArrayList<>();
          for (String val : arguments.getValue())
          {
             args.add(val);
          }
          builder.addArguments(args.toArray(new String[args.size()]));
-      }
-      else
-      {
-         builder.addArguments("clean", "install");
       }
 
       if (notest.getValue())
@@ -95,9 +83,10 @@ public class BuildCommand extends AbstractProjectCommand
          builder.runTests(false);
       }
 
-      if (profile.getValue() != null)
+      if (profile.hasValue())
       {
-         builder.addArguments("-P" + profile.getValue());
+         List<String> list = Lists.toList(profile.getValue());
+         builder.profiles(list.toArray(new String[list.size()]));
       }
 
       builder.quiet(quiet.getValue());
@@ -128,6 +117,6 @@ public class BuildCommand extends AbstractProjectCommand
    @Override
    protected ProjectFactory getProjectFactory()
    {
-      return projectFactory;
+      return SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class).get();
    }
 }

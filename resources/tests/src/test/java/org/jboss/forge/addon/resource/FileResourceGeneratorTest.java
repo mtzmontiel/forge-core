@@ -1,24 +1,21 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.resource;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.nio.charset.Charset;
 import java.util.UUID;
 
-import javax.inject.Inject;
-
-import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.util.OperatingSystemUtils;
-import org.jboss.forge.furnace.util.Streams;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -28,25 +25,13 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class FileResourceGeneratorTest
 {
-   @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:facets"),
-            @AddonDependency(name = "org.jboss.forge.addon:resources") })
-   public static ForgeArchive getDeployment()
-   {
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:facets"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:resources")
-               );
-
-      return archive;
-   }
-
-   @Inject
    private ResourceFactory factory;
+
+   @Before
+   public void setUp()
+   {
+      this.factory = SimpleContainer.getServices(getClass().getClassLoader(), ResourceFactory.class).get();
+   }
 
    @Test
    public void testCreateUnknownFileResource() throws Exception
@@ -189,7 +174,7 @@ public class FileResourceGeneratorTest
       {
          write.append("READ");
       }
-      
+
       FileResource<?> fileResource = factory.create(file).reify(FileResource.class);
       Assert.assertEquals("READ", fileResource.getContents());
       fileResource.setContents("WRITE");

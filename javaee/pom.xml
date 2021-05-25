@@ -4,7 +4,7 @@
    <parent>
       <groupId>org.jboss.forge</groupId>
       <artifactId>forge-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
       <relativePath>../pom.xml</relativePath>
    </parent>
 
@@ -15,16 +15,16 @@
    <name>Forge - JavaEE Parent</name>
 
    <modules>
-   	  <module>spi</module>
+      <module>spi</module>
       <module>addon</module>
       <module>api</module>
       <module>impl</module>
-      <module>faces</module>
+      <module>scaffold-faces</module>
       <module>tests</module>
    </modules>
 
    <properties>
-      <javaee.descriptors.version>0.0.4.Final</javaee.descriptors.version>
+      <javaee.descriptors.version>0.0.6.Final</javaee.descriptors.version>
    </properties>
 
    <dependencyManagement>

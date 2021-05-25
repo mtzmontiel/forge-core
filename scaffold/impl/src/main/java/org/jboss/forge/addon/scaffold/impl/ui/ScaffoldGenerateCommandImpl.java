@@ -1,18 +1,13 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.scaffold.impl.ui;
 
-import java.util.Iterator;
 import java.util.Map;
 
-import javax.inject.Inject;
-
-import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
@@ -24,16 +19,16 @@ import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.context.UINavigationContext;
-import org.jboss.forge.addon.ui.context.UIValidationContext;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.input.UISelectOne;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.NavigationResult;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.result.navigation.NavigationResultBuilder;
 import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.services.Imported;
 
 /**
@@ -45,46 +40,28 @@ public class ScaffoldGenerateCommandImpl extends AbstractProjectCommand implemen
 {
    public static final String REQUIRES_SCAFFOLD_SETUP = "REQUIRES_SCAFFOLD_SETUP";
 
-   @Inject
-   @WithAttributes(label = "Scaffold Type", required = true)
    private UISelectOne<ScaffoldProvider> provider;
-
-   @Inject
-   @WithAttributes(label = "Web Root Path", defaultValue = "/", description = "The web root path where the scaffolding will be "
-            + "placed/accessible from the client browser (default '/').")
    private UIInput<String> webRoot;
-
-   @Inject
-   private ProjectFactory factory;
-
-   @Inject
-   private Imported<ScaffoldProvider> scaffoldProviders;
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
-      Iterator<ScaffoldProvider> scaffolds = scaffoldProviders.iterator();
-      if (scaffolds.hasNext())
+      InputComponentFactory factory = builder.getInputComponentFactory();
+      provider = factory.createSelectOne("provider", ScaffoldProvider.class).setLabel("Scaffold Type")
+               .setRequired(true);
+      webRoot = factory.createInput("webRoot", String.class).setLabel("Web Root Path").setDefaultValue("/")
+               .setDescription(
+                        "The web root path where the scaffolding will be placed/accessible from the client browser (default '/').");
+
+      Imported<ScaffoldProvider> scaffoldProviders = SimpleContainer.getServices(getClass().getClassLoader(),
+               ScaffoldProvider.class);
+      if (!scaffoldProviders.isUnsatisfied() && !scaffoldProviders.isAmbiguous())
       {
-         provider.setDefaultValue(scaffolds.next());
+         provider.setDefaultValue(scaffoldProviders.get());
       }
       provider.setValueChoices(scaffoldProviders);
-      provider.setItemLabelConverter(new Converter<ScaffoldProvider, String>()
-      {
-
-         @Override
-         public String convert(ScaffoldProvider source)
-         {
-            return source == null ? null : source.getName();
-         }
-      });
+      provider.setItemLabelConverter((source) -> source.getName());
       builder.add(provider).add(webRoot);
-   }
-
-   @Override
-   public void validate(UIValidationContext validator)
-   {
-      super.validate(validator);
    }
 
    @Override
@@ -114,7 +91,6 @@ public class ScaffoldGenerateCommandImpl extends AbstractProjectCommand implemen
       attributeMap.put(ScaffoldGenerationContext.class, generationContext);
 
       NavigationResult setupFlow = null;
-      Project project = getSelectedProject(uiContext);
 
       // Verify if the selected provider is installed
       // If not, add the setup flow and inform the generation step to setup the scaffold.
@@ -146,7 +122,7 @@ public class ScaffoldGenerateCommandImpl extends AbstractProjectCommand implemen
    @Override
    protected ProjectFactory getProjectFactory()
    {
-      return factory;
+      return SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class).get();
    }
 
    private ScaffoldGenerationContext populateGenerationContext(UIContext context)
@@ -154,7 +130,7 @@ public class ScaffoldGenerateCommandImpl extends AbstractProjectCommand implemen
       Project project = getSelectedProject(context);
       Map<Object, Object> attributeMap = context.getAttributeMap();
       String targetDir = webRoot.getValue();
-      if(targetDir == null || targetDir.equals("/"))
+      if (targetDir == null || targetDir.equals("/"))
       {
          targetDir = "";
       }
@@ -175,7 +151,7 @@ public class ScaffoldGenerateCommandImpl extends AbstractProjectCommand implemen
    {
       Project project = getSelectedProject(context);
       String targetDir = webRoot.getValue();
-      if(targetDir == null || targetDir.equals("/"))
+      if (targetDir == null || targetDir.equals("/"))
       {
          targetDir = "";
       }

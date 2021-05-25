@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.maven.archetype;
 
 import java.net.MalformedURLException;
@@ -16,14 +15,10 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import org.jboss.forge.addon.configuration.Configuration;
-import org.jboss.forge.addon.configuration.Subset;
-import org.jboss.forge.furnace.addons.AddonRegistry;
+import org.jboss.forge.furnace.container.simple.AbstractEventListener;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
+import org.jboss.forge.furnace.services.Imported;
 import org.jboss.forge.furnace.util.Assert;
 
 /**
@@ -31,29 +26,28 @@ import org.jboss.forge.furnace.util.Assert;
  *
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
-@Singleton
-public class ArchetypeCatalogFactoryRegistryImpl implements ArchetypeCatalogFactoryRegistry
+public class ArchetypeCatalogFactoryRegistryImpl extends AbstractEventListener
+         implements ArchetypeCatalogFactoryRegistry
 {
    private Map<String, ArchetypeCatalogFactory> factories = new TreeMap<>();
    private final Logger log = Logger.getLogger(getClass().getName());
 
-   @Inject
-   private AddonRegistry addonRegistry;
+   private Imported<ArchetypeCatalogFactory> services;
 
-   @Inject
-   @Subset("maven.archetypes")
-   private Configuration archetypeConfiguration;
+   private Configuration getArchetypeConfiguration()
+   {
+      return SimpleContainer.getServices(getClass().getClassLoader(), Configuration.class).get()
+               .subset("maven.archetypes");
+   }
 
    /**
-    * Add all the available {@link ArchetypeCatalogFactory}es to registry
+    * Registers the {@link ArchetypeCatalogFactory} objects from the user {@link Configuration}
     */
-   @PostConstruct
-   void initializeDefaultFactories()
+   @Override
+   protected void handleThisPostStartup()
    {
-      for (ArchetypeCatalogFactory factory : addonRegistry.getServices(ArchetypeCatalogFactory.class))
-      {
-         addArchetypeCatalogFactory(factory);
-      }
+      services = SimpleContainer.getServices(getClass().getClassLoader(), ArchetypeCatalogFactory.class);
+      Configuration archetypeConfiguration = getArchetypeConfiguration();
       Iterator<?> keys = archetypeConfiguration.getKeys();
       while (keys.hasNext())
       {
@@ -63,8 +57,7 @@ public class ArchetypeCatalogFactoryRegistryImpl implements ArchetypeCatalogFact
             String url = archetypeConfiguration.getString(name);
             try
             {
-               URL catalogUrl = new URL(url);
-               addArchetypeCatalogFactory(name, catalogUrl);
+               addArchetypeCatalogFactory(name, new URL(url));
             }
             catch (MalformedURLException e)
             {
@@ -74,8 +67,8 @@ public class ArchetypeCatalogFactoryRegistryImpl implements ArchetypeCatalogFact
       }
    }
 
-   @PreDestroy
-   void destroy()
+   @Override
+   protected void handleThisPreShutdown()
    {
       this.factories.clear();
    }
@@ -103,19 +96,40 @@ public class ArchetypeCatalogFactoryRegistryImpl implements ArchetypeCatalogFact
    @Override
    public Iterable<ArchetypeCatalogFactory> getArchetypeCatalogFactories()
    {
-      return Collections.unmodifiableCollection(factories.values());
+      Map<String, ArchetypeCatalogFactory> result = new TreeMap<>();
+      for (ArchetypeCatalogFactory factory : services)
+      {
+         result.put(factory.getName(), factory);
+      }
+      result.putAll(factories);
+      return Collections.unmodifiableCollection(result.values());
    }
 
    @Override
    public ArchetypeCatalogFactory getArchetypeCatalogFactory(String name)
    {
-      return factories.get(name);
+      ArchetypeCatalogFactory result = null;
+      if (name != null)
+      {
+         for (ArchetypeCatalogFactory factory : getArchetypeCatalogFactories())
+         {
+            if (name.equals(factory.getName()))
+               return factory;
+         }
+      }
+      return result;
    }
 
    @Override
    public void removeArchetypeCatalogFactory(String name)
    {
       factories.remove(name);
+   }
+
+   @Override
+   public boolean hasArchetypeCatalogFactories()
+   {
+      return factories.size() > 0 || !services.isUnsatisfied();
    }
 
 }

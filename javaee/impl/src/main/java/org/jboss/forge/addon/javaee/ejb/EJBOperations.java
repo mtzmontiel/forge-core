@@ -1,16 +1,19 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.ejb;
 
 import java.io.FileNotFoundException;
 import java.io.Serializable;
 
 import javax.ejb.ActivationConfigProperty;
+import javax.ejb.MessageDriven;
+import javax.ejb.Singleton;
+import javax.ejb.Stateful;
+import javax.ejb.Stateless;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.persistence.GenerationType;
@@ -22,6 +25,7 @@ import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.furnace.util.Assert;
 import org.jboss.forge.roaster.Roaster;
 import org.jboss.forge.roaster.model.JavaClass;
+import org.jboss.forge.roaster.model.JavaType;
 import org.jboss.forge.roaster.model.source.AnnotationSource;
 import org.jboss.forge.roaster.model.source.JavaClassSource;
 
@@ -50,8 +54,7 @@ public class EJBOperations
             final String ejbName,
             final String targetPackage,
             final EJBType ejbType,
-            final boolean serializable
-            ) throws FileNotFoundException
+            final boolean serializable) throws FileNotFoundException
    {
       final JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
       JavaClassSource javaClass = createJavaClass(ejbName, targetPackage, ejbType, serializable);
@@ -75,8 +78,7 @@ public class EJBOperations
             final String ejbName,
             final String ejbPackage,
             final EJBType ejbType,
-            final boolean serializable
-            )
+            final boolean serializable)
    {
       JavaClassSource javaClass = createJavaClass(ejbName, ejbPackage, ejbType, serializable);
       JavaResource javaResource = getJavaResource(target, javaClass.getName());
@@ -119,25 +121,25 @@ public class EJBOperations
       Assert.notNull(destType, "JMS Destination type must not be null when bean is Message Driven");
       Assert.notNull(destName, "JMS Destination name must not be null when bean is Message Driven");
 
-      ejb.addImport(ActivationConfigProperty.class);
-      ejb.addImport(Message.class);
-      ejb.addInterface(MessageListener.class);
-      ejb.addMethod("public void onMessage(Message message) {}");
-
       AnnotationSource<JavaClassSource> annotation = ejb.getAnnotation(EJBType.MESSAGEDRIVEN.getAnnotation());
       if (annotation == null)
       {
          annotation = ejb.addAnnotation(EJBType.MESSAGEDRIVEN.getAnnotation());
       }
-
-      annotation.setLiteralValue("name", "\"" + ejb.getName() + "\"")
-               .setLiteralValue(
-                        "activationConfig",
-                        "{@ActivationConfigProperty(propertyName = \"destinationType\", propertyValue = \""
-                                 + destType.getDestinationType()
-                                 + "\"), "
-                                 + "@ActivationConfigProperty(propertyName = \"destination\", propertyValue = \""
-                                 + destName + "\")" + "}");
+      if (destType != null && destName != null)
+      {
+         ejb.addImport(ActivationConfigProperty.class);
+         ejb.addImport(Message.class);
+         ejb.implementInterface(MessageListener.class);
+         annotation.setLiteralValue("name", "\"" + ejb.getName() + "\"")
+                  .setLiteralValue(
+                           "activationConfig",
+                           "{@ActivationConfigProperty(propertyName = \"destinationType\", propertyValue = \""
+                                    + destType.getDestinationType()
+                                    + "\"), "
+                                    + "@ActivationConfigProperty(propertyName = \"destination\", propertyValue = \""
+                                    + destName + "\")" + "}");
+      }
 
       return ejb;
    }
@@ -149,5 +151,103 @@ public class EJBOperations
       path = path.replace(".", "/") + ".java";
       JavaResource target = sourceDir.getChildOfType(JavaResource.class, path);
       return target;
+   }
+
+   /**
+    * Given a JavaType, this method checks if it's an EJB or not
+    * 
+    * @param javaType given type
+    * @return true if the type is an EJB
+    */
+   public boolean isEJB(JavaType<?> javaType)
+   {
+      return javaType.hasAnnotation(Stateless.class) ||
+               javaType.hasAnnotation(Stateful.class) ||
+               javaType.hasAnnotation(Singleton.class) ||
+               javaType.hasAnnotation(MessageDriven.class);
+
+   }
+
+   /**
+    * @param ejb
+    * @param name
+    * @param value
+    */
+   public void addActivationConfigProperty(JavaClassSource ejb, String name, String value)
+   {
+      AnnotationSource<JavaClassSource> ann = ejb.getAnnotation(MessageDriven.class);
+      if (ann == null)
+      {
+         setupMessageDrivenBean(ejb, null, null);
+         ann = ejb.getAnnotation(MessageDriven.class);
+      }
+      String annEntry = String.format("@ActivationConfigProperty(propertyName = \"%s\", propertyValue = \"%s\")", name,
+               value);
+      // TODO: Improve Roaster API
+      AnnotationSource<JavaClassSource> existing[] = ann.getAnnotationArrayValue("activationConfig");
+      boolean added = false;
+      StringBuilder entries = new StringBuilder();
+      if (existing != null)
+      {
+         for (AnnotationSource<JavaClassSource> entry : existing)
+         {
+            String v;
+            if (name.equals(entry.getStringValue("propertyName")))
+            {
+               v = annEntry;
+               added = true;
+            }
+            else
+            {
+               v = entry.toString();
+            }
+            if (entries.length() > 0)
+            {
+               entries.append(',').append(System.lineSeparator());
+            }
+            entries.append(v);
+         }
+      }
+      if (!added)
+      {
+         if (entries.length() > 0)
+         {
+            entries.append(',').append(System.lineSeparator());
+         }
+         entries.append(annEntry);
+      }
+      ann.setLiteralValue("activationConfig", "{" + entries + "}");
+   }
+
+   /**
+    * @param target
+    * @param name
+    */
+   public void removeActivationConfigProperty(JavaClassSource target, String name)
+   {
+      AnnotationSource<JavaClassSource> ann = target.getAnnotation(MessageDriven.class);
+      if (ann == null)
+      {
+         // Do nothing
+         return;
+      }
+      AnnotationSource<JavaClassSource> existing[] = ann.getAnnotationArrayValue("activationConfig");
+      if (existing != null)
+      {
+         StringBuilder entries = new StringBuilder();
+         for (AnnotationSource<JavaClassSource> entry : existing)
+         {
+            if (name.equals(entry.getStringValue("propertyName")))
+            {
+               continue;
+            }
+            if (entries.length() > 0)
+            {
+               entries.append(',').append(System.lineSeparator());
+            }
+            entries.append(entry);
+         }
+         ann.setLiteralValue("activationConfig", "{" + entries + "}");
+      }
    }
 }

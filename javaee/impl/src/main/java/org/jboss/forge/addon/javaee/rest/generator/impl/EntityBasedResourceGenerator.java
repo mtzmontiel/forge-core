@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -15,6 +15,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.jboss.forge.addon.javaee.jpa.JPAEntityUtil;
 import org.jboss.forge.addon.javaee.rest.generation.RestGenerationConstants;
 import org.jboss.forge.addon.javaee.rest.generation.RestGenerationContext;
 import org.jboss.forge.addon.javaee.rest.generation.RestResourceGenerator;
@@ -28,6 +29,7 @@ import org.jboss.forge.addon.templates.TemplateFactory;
 import org.jboss.forge.addon.templates.freemarker.FreemarkerTemplate;
 import org.jboss.forge.roaster.Roaster;
 import org.jboss.forge.roaster.model.source.JavaClassSource;
+import org.jboss.forge.roaster.model.util.Types;
 
 /**
  * A JAX-RS resource generator that uses JPA entities directly in the created REST resources.
@@ -51,14 +53,14 @@ public class EntityBasedResourceGenerator implements RestResourceGenerator
          project.getFacet(JavaSourceFacet.class).saveJavaSource(entity);
       }
       String contentType = ResourceGeneratorUtil.getContentType(context.getContentType());
-      String idType = ResourceGeneratorUtil.resolveIdType(entity);
+      String idType = JPAEntityUtil.resolveIdType(entity);
       String persistenceUnitName = context.getPersistenceUnitName();
-      String idGetterName = ResourceGeneratorUtil.resolveIdGetterName(entity);
-      String entityTable = ResourceGeneratorUtil.getEntityTable(entity);
-      String selectExpression = ResourceGeneratorUtil.getSelectExpression(entity, entityTable);
-      String idClause = ResourceGeneratorUtil.getIdClause(entity, entityTable);
-      String orderClause = ResourceGeneratorUtil.getOrderClause(entity,
-               ResourceGeneratorUtil.getJpqlEntityVariable(entityTable));
+      String idGetterName = JPAEntityUtil.resolveIdGetterName(entity);
+      String entityTable = JPAEntityUtil.getEntityTable(entity);
+      String selectExpression = JPAEntityUtil.getSelectExpression(entity, entityTable);
+      String idClause = JPAEntityUtil.getIdClause(entity, entityTable);
+      String orderClause = JPAEntityUtil.getOrderClause(entity,
+               JPAEntityUtil.getJpqlEntityVariable(entityTable));
       String resourcePath = ResourceGeneratorUtil.getResourcePath(context);
 
       Map<Object, Object> map = new HashMap<>();
@@ -72,6 +74,7 @@ public class EntityBasedResourceGenerator implements RestResourceGenerator
       map.put("idClause", idClause);
       map.put("orderClause", orderClause);
       map.put("resourcePath", resourcePath);
+      map.put("idIsPrimitive", Types.isPrimitive(idType));
 
       Resource<URL> templateResource = resourceFactory.create(getClass().getResource("Endpoint.jv"));
       Template processor = templateFactory.create(templateResource, FreemarkerTemplate.class);

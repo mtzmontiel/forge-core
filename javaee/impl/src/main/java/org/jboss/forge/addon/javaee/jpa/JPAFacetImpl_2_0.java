@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.jpa;
 
 import java.util.Arrays;
@@ -28,7 +27,7 @@ import org.jboss.shrinkwrap.descriptor.api.persistence20.PersistenceDescriptor;
  *
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
-public class JPAFacetImpl_2_0 extends AbstractJPAFacetImpl<PersistenceDescriptor> implements JPAFacet_2_0
+public class JPAFacetImpl_2_0 extends AbstractJPAFacetImpl<PersistenceDescriptor>implements JPAFacet_2_0
 {
    private final Dependency JAVAX_PERSISTENCE = DependencyBuilder
             .create("org.hibernate.javax.persistence:hibernate-jpa-2.0-api").setScopeType("provided");
@@ -42,13 +41,13 @@ public class JPAFacetImpl_2_0 extends AbstractJPAFacetImpl<PersistenceDescriptor
    @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("2.0");
+      return SingleVersion.valueOf("2.0");
    }
 
    @Override
    protected Map<Dependency, List<Dependency>> getRequiredDependencyOptions()
    {
-      return Collections.singletonMap(JAVAX_PERSISTENCE, Arrays.asList(JAVAX_PERSISTENCE));
+      return Collections.singletonMap(JAVAX_PERSISTENCE, Arrays.asList(JAVAX_PERSISTENCE, JAVAEE6));
    }
 
    @Override
@@ -69,7 +68,7 @@ public class JPAFacetImpl_2_0 extends AbstractJPAFacetImpl<PersistenceDescriptor
    {
       PersistenceDescriptor descriptorContents = Descriptors.create(PersistenceDescriptor.class)
                .version("2.0");
-      descriptor.setContents(descriptorContents.exportAsString());
+      saveConfig(descriptorContents);
    }
 
    @Override

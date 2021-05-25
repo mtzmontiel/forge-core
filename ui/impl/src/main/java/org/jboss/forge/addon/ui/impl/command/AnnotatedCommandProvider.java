@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.command;
 
 import java.lang.annotation.Annotation;
@@ -26,7 +25,7 @@ import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.impl.annotation.AnnotationCommandAdapter;
 import org.jboss.forge.addon.ui.impl.extension.AnnotatedCommandExtension;
-import org.jboss.forge.addon.ui.impl.input.InputComponentProducer;
+import org.jboss.forge.addon.ui.impl.input.InputComponentFactoryImpl;
 import org.jboss.forge.furnace.addons.AddonId;
 import org.jboss.forge.furnace.addons.AddonRegistry;
 import org.jboss.forge.furnace.event.PreShutdown;
@@ -45,7 +44,7 @@ public class AnnotatedCommandProvider implements CommandProvider
    private AddonRegistry registry;
 
    @Inject
-   private InputComponentProducer factory;
+   private InputComponentFactoryImpl factory;
 
    @Inject
    private AnnotatedCommandExtension extension;
@@ -79,8 +78,11 @@ public class AnnotatedCommandProvider implements CommandProvider
       Imported<?> service = registry.getServices(method.getDeclaringClass());
       if (service.isUnsatisfied())
       {
-         // Class may not be loaded yet
-         logger.log(Level.SEVERE, "Error while finding " + method.getDeclaringClass() + " as a service");
+         // Class may not have been loaded yet
+         if (logger.isLoggable(Level.FINE))
+         {
+            logger.log(Level.FINE, "Error while finding " + method.getDeclaringClass() + " as a service");
+         }
          return null;
       }
       Object instance = service.get();
@@ -97,6 +99,12 @@ public class AnnotatedCommandProvider implements CommandProvider
    public void addonDestroyed(@Observes PreShutdown shutdown)
    {
       AddonId id = shutdown.getAddon().getId();
-      extension.addonDestroyed(id);
+      addonUndeployed(id);
+   }
+
+   @Override
+   public void addonUndeployed(AddonId addonId)
+   {
+      extension.addonDestroyed(addonId);
    }
 }

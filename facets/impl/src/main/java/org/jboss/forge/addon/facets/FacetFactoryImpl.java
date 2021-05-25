@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -17,22 +17,28 @@ import java.util.logging.Logger;
 
 import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.facets.constraints.FacetInspector;
+import org.jboss.forge.addon.facets.events.FacetEvent;
+import org.jboss.forge.addon.facets.events.FacetInstalledImpl;
+import org.jboss.forge.addon.facets.events.FacetRegisteredImpl;
 import org.jboss.forge.furnace.Furnace;
 import org.jboss.forge.furnace.addons.AddonRegistry;
-import org.jboss.forge.furnace.container.simple.Service;
 import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.services.Imported;
+import org.jboss.forge.furnace.spi.ListenerRegistration;
 import org.jboss.forge.furnace.util.Assert;
 import org.jboss.forge.furnace.util.Predicate;
+import org.jboss.forge.furnace.util.Sets;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-public class FacetFactoryImpl implements FacetFactory, Service
+public class FacetFactoryImpl implements FacetFactory
 {
    private static final Logger log = Logger.getLogger(FacetFactoryImpl.class.getName());
 
    private AddonRegistry registry;
+
+   private final Set<FacetListener> listeners = Sets.getConcurrentSet(FacetListener.class);
 
    @Override
    public <FACETEDTYPE extends Faceted<?>, FACETTYPE extends Facet<FACETEDTYPE>> FACETTYPE create(
@@ -210,6 +216,11 @@ public class FacetFactoryImpl implements FacetFactory, Service
          try
          {
             result = ((MutableFaceted<FACETTYPE>) faceted).install(facet);
+            // Firing Facet installed event
+            if (result)
+            {
+               fireFacetEvent(new FacetInstalledImpl(facet));
+            }
          }
          catch (Exception e)
          {
@@ -243,6 +254,38 @@ public class FacetFactoryImpl implements FacetFactory, Service
 
       Set<Class<FACETTYPE>> seen = new LinkedHashSet<>();
       return register(seen, origin, facet);
+   }
+
+   @Override
+   public ListenerRegistration<FacetListener> addFacetListener(final FacetListener listener)
+   {
+      listeners.add(listener);
+      return new ListenerRegistration<FacetListener>()
+      {
+         @Override
+         public FacetListener removeListener()
+         {
+            listeners.remove(listener);
+            return listener;
+         }
+      };
+   }
+
+   private void fireFacetEvent(FacetEvent event)
+   {
+      for (FacetListener listener : getFacetListeners())
+      {
+         try
+         {
+            listener.processEvent(event);
+         }
+         catch (Throwable e)
+         {
+            log.log(Level.WARNING, "Error while firing " + event, e);
+         }
+      }
+      // Fire event using Furnace's event architecture
+      getAddonRegistry().getEventManager().fireEvent(event);
    }
 
    @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -310,6 +353,10 @@ public class FacetFactoryImpl implements FacetFactory, Service
          try
          {
             result = ((MutableFaceted<FACETTYPE>) faceted).register(facet);
+            if (result)
+            {
+               fireFacetEvent(new FacetRegisteredImpl(facet));
+            }
          }
          catch (Exception e)
          {
@@ -328,5 +375,16 @@ public class FacetFactoryImpl implements FacetFactory, Service
          this.registry = furnace.getAddonRegistry();
       }
       return registry;
+   }
+
+   private Set<FacetListener> getFacetListeners()
+   {
+      Set<FacetListener> set = new HashSet<>();
+      for (FacetListener service : getAddonRegistry().getServices(FacetListener.class))
+      {
+         set.add(service);
+      }
+      set.addAll(listeners);
+      return set;
    }
 }

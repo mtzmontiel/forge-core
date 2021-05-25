@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -29,8 +29,11 @@ public class Metadata implements UICommandMetadata
 
    private String name;
    private String description;
+   private String longDescription;
    private UICategory category;
    private URL docLocation;
+   private boolean deprecated;
+   private String deprecatedMessage;
 
    private final Class<?> type;
 
@@ -61,7 +64,7 @@ public class Metadata implements UICommandMetadata
    {
       this.type = type2;
       docLocation(getDocLocationFor(type2)).name(type2.getName()).category(Categories.createDefault())
-               .description(UICommandMetadata.NO_DESCRIPTION);
+               .description(UICommandMetadata.NO_DESCRIPTION).deprecated(type.getAnnotation(Deprecated.class) != null);
    }
 
    /**
@@ -83,6 +86,15 @@ public class Metadata implements UICommandMetadata
    }
 
    /**
+    * Set the long description for the corresponding {@link UICommand}.
+    */
+   public Metadata longDescription(String description)
+   {
+      this.longDescription = description;
+      return this;
+   }
+
+   /**
     * Set the {@link UICategory} of the corresponding {@link UICommand}.
     */
    public Metadata category(UICategory category)
@@ -97,6 +109,24 @@ public class Metadata implements UICommandMetadata
    public Metadata docLocation(URL docLocation)
    {
       this.docLocation = docLocation;
+      return this;
+   }
+
+   /**
+    * Set the deprecated flag for this command
+    */
+   public Metadata deprecated(boolean deprecated)
+   {
+      this.deprecated = deprecated;
+      return this;
+   }
+
+   /**
+    * Set the deprecated message for this command
+    */
+   public Metadata deprecatedMessage(String deprecatedMessage)
+   {
+      this.deprecatedMessage = deprecatedMessage;
       return this;
    }
 
@@ -127,6 +157,8 @@ public class Metadata implements UICommandMetadata
       return description;
    }
 
+   @Override public String getLongDescription() { return longDescription; }
+
    @Override
    public UICategory getCategory()
    {
@@ -142,11 +174,20 @@ public class Metadata implements UICommandMetadata
    @Override
    public String toString()
    {
-      return "Metadata [" +
-               "name: " + name +
-               ", description: " + description +
-               ", category: " + category +
-               ", docLocation: " + docLocation + "]";
+      return "Metadata [name=" + name + ", description=" + description + ", category=" + category + ", docLocation="
+               + docLocation + ", deprecated=" + deprecated + ", deprecatedMessage=" + deprecatedMessage + "]";
+   }
+
+   @Override
+   public boolean isDeprecated()
+   {
+      return deprecated;
+   }
+
+   @Override
+   public String getDeprecatedMessage()
+   {
+      return deprecatedMessage;
    }
 
    @Override

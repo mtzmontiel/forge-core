@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.test;
 
 import java.util.HashMap;
@@ -48,6 +47,8 @@ public class UITestHarness
    private CommandControllerFactory factory;
 
    private UIProviderImpl providerImpl;
+   
+   private boolean isGui = true;
 
    private final Map<String, String> promptResults = new HashMap<>();
 
@@ -88,6 +89,32 @@ public class UITestHarness
                addonRegistry.getServices(commandClass).get());
    }
 
+   public WizardCommandController createWizardController(String name) throws Exception
+   {
+      return createWizardController(name, (Resource<?>) null);
+   }
+
+   public WizardCommandController createWizardController(String name, Resource<?>... initialSelection) throws Exception
+   {
+      WizardCommandController result = null;
+      Iterable<UICommand> commands = commandFactory.getCommands();
+      UIContextImpl context = getUIContextInstance(initialSelection);
+      for (UICommand command : commands)
+      {
+         if (command instanceof UIWizard)
+         {
+            UICommandMetadata metadata = command.getMetadata(context);
+            if (name.equals(metadata.getName()))
+            {
+               result = factory.createWizardController(context, getUIRuntimeInstance(), (UIWizard) command);
+               break;
+            }
+         }
+      }
+      Assert.notNull(result, "Command " + name + " not found");
+      return result;
+   }
+
    public WizardCommandController createWizardController(Class<? extends UIWizard> wizardClass) throws Exception
    {
       return createWizardController(wizardClass, (Resource<?>) null);
@@ -111,11 +138,11 @@ public class UITestHarness
    {
       if (providerImpl == null)
       {
-         providerImpl = new UIProviderImpl(true);
+         providerImpl = new UIProviderImpl(isGui);
       }
       return providerImpl;
    }
-
+   
    private UIContextImpl getUIContextInstance(Resource<?>... initialSelection)
    {
       Imported<UIContextListener> listeners = addonRegistry.getServices(UIContextListener.class);
@@ -130,5 +157,15 @@ public class UITestHarness
    public Map<String, String> getPromptResults()
    {
       return this.promptResults;
+   }
+
+   public boolean isGui()
+   {
+      return isGui;
+   }
+
+   public void setGui(boolean isGui)
+   {
+      this.isGui = isGui;
    }
 }

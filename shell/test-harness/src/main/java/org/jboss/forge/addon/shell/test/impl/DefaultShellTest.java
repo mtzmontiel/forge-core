@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -17,14 +17,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
 import org.jboss.aesh.console.AeshConsoleImpl;
 import org.jboss.aesh.console.settings.Settings;
 import org.jboss.aesh.console.settings.SettingsBuilder;
 import org.jboss.aesh.edit.KeyOperation;
+import org.jboss.aesh.edit.actions.Action;
 import org.jboss.aesh.edit.actions.Operation;
 import org.jboss.aesh.terminal.Key;
 import org.jboss.aesh.terminal.TestTerminal;
@@ -36,15 +37,16 @@ import org.jboss.forge.furnace.container.cdi.events.Local;
 import org.jboss.forge.furnace.event.PreShutdown;
 import org.jboss.forge.furnace.exception.ContainerException;
 import org.jboss.forge.furnace.util.Assert;
+import org.jboss.forge.furnace.util.Callables;
 import org.jboss.forge.furnace.util.OperatingSystemUtils;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@Singleton
 public class DefaultShellTest implements ShellTest
 {
    private static final String LINE_SEPARATOR = OperatingSystemUtils.getLineSeparator();
+   private static final KeyOperation completeChar = new KeyOperation(Key.CTRL_I, Operation.COMPLETE, Action.COMPLETE);
    private final TestCommandListener listener = new TestCommandListener();
    private final TestStreams provider = new TestStreams();
 
@@ -52,14 +54,7 @@ public class DefaultShellTest implements ShellTest
    private ShellFactory factory;
    private Shell shell;
 
-   private final Callable<?> nullCallable = new Callable<Void>()
-   {
-      @Override
-      public Void call() throws Exception
-      {
-         return null;
-      }
-   };
+   private final Callable<?> nullCallable = Callables.returning(null);
 
    @Override
    public Shell getShell()
@@ -80,9 +75,23 @@ public class DefaultShellTest implements ShellTest
 
    public void teardown(@Observes @Local PreShutdown event) throws Exception
    {
+      close();
+   }
+
+   @PreDestroy
+   @Override
+   public void close()
+   {
       if (shell != null)
       {
-         shell.close();
+         try
+         {
+            shell.close();
+         }
+         catch (Exception e)
+         {
+            e.printStackTrace();
+         }
          shell = null;
       }
    }
@@ -90,7 +99,7 @@ public class DefaultShellTest implements ShellTest
    @Override
    public String getBuffer()
    {
-      AeshConsoleImpl console = (AeshConsoleImpl) shell.getConsole();
+      AeshConsoleImpl console = (AeshConsoleImpl) getShell().getConsole();
       return console.getBuffer();
    }
 
@@ -320,7 +329,8 @@ public class DefaultShellTest implements ShellTest
          }
          catch (InterruptedException e)
          {
-            throw new RuntimeException("Interrupted while waiting for buffer value to change from [" + buffer + "].", e);
+            throw new RuntimeException("Interrupted while waiting for buffer value to change from [" + buffer + "].",
+                     e);
          }
       }
    }
@@ -392,8 +402,8 @@ public class DefaultShellTest implements ShellTest
             inputStream = new PipedInputStream(stdin);
             settings = new SettingsBuilder()
                      .inputStream(inputStream)
-                     .outputStream(new PrintStream(stdout))
-                     .outputStreamError(new PrintStream(stderr))
+                     .outputStream(new PrintStream(stdout, true))
+                     .outputStreamError(new PrintStream(stderr, true))
                      .name("test")
                      .logging(true)
                      .setExportUsesSystemEnvironment(true)
@@ -432,8 +442,6 @@ public class DefaultShellTest implements ShellTest
       getStdIn().write(string.getBytes());
    }
 
-   private final KeyOperation completeChar = new KeyOperation(Key.CTRL_I, Operation.COMPLETE);
-
    @Override
    public void sendCompletionSignal() throws IOException
    {
@@ -465,7 +473,7 @@ public class DefaultShellTest implements ShellTest
             @Override
             public String call() throws Exception
             {
-               AeshConsoleImpl console = (AeshConsoleImpl) shell.getConsole();
+               AeshConsoleImpl console = (AeshConsoleImpl) getShell().getConsole();
                console.getInputProcessor().resetBuffer();
                provider.getStdOut().reset();
                provider.getStdErr().reset();

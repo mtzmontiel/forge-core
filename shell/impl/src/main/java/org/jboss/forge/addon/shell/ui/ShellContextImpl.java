@@ -1,19 +1,18 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.ui;
 
-import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.shell.Shell;
+import org.jboss.forge.addon.shell.aesh.line.CommandLineImpl;
+import org.jboss.forge.addon.shell.line.CommandLine;
 import org.jboss.forge.addon.ui.context.AbstractUIContext;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIContextListener;
 import org.jboss.forge.addon.ui.context.UISelection;
-import org.jboss.forge.addon.ui.util.Selections;
 
 /**
  * Implementation of {@link UIContext}
@@ -26,13 +25,15 @@ public class ShellContextImpl extends AbstractUIContext implements ShellContext
    private final UISelection<?> initialSelection;
    private final Iterable<UIContextListener> listeners;
 
-   @SuppressWarnings("unchecked")
-   public ShellContextImpl(Shell shell, Resource<?> currentResource, Iterable<UIContextListener> listeners)
+   public ShellContextImpl(Shell shell, UISelection<?> initialSelection, Iterable<UIContextListener> listeners)
    {
       this.shell = shell;
-      this.initialSelection = Selections.from(currentResource);
+      this.initialSelection = initialSelection;
       this.listeners = listeners;
-      init();
+      for (UIContextListener listener : listeners)
+      {
+         listener.contextInitialized(this);
+      }
    }
 
    @SuppressWarnings("unchecked")
@@ -48,14 +49,6 @@ public class ShellContextImpl extends AbstractUIContext implements ShellContext
       return shell;
    }
 
-   public void init()
-   {
-      for (UIContextListener listener : listeners)
-      {
-         listener.contextInitialized(this);
-      }
-   }
-
    @Override
    public void close()
    {
@@ -69,6 +62,11 @@ public class ShellContextImpl extends AbstractUIContext implements ShellContext
    @Override
    public boolean isInteractive()
    {
+      String sysProp = System.getProperty("INTERACTIVE");
+      if (sysProp != null)
+      {
+         return Boolean.parseBoolean(sysProp);
+      }
       Object interactiveFlag = getAttributeMap().get("INTERACTIVE");
       return (interactiveFlag == null || "true".equalsIgnoreCase(interactiveFlag.toString()));
    }
@@ -80,4 +78,11 @@ public class ShellContextImpl extends AbstractUIContext implements ShellContext
       return (verboseFlag != null && "true".equalsIgnoreCase(verboseFlag.toString()));
    }
 
+   @Override
+   public CommandLine getCommandLine()
+   {
+      org.jboss.aesh.cl.CommandLine<?> cmdLine = (org.jboss.aesh.cl.CommandLine<?>) getAttributeMap()
+               .get(org.jboss.aesh.cl.CommandLine.class);
+      return new CommandLineImpl(cmdLine);
+   }
 }

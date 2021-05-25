@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -21,15 +20,16 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.resource.ResourceFactory;
+import org.jboss.forge.addon.shell.mock.command.ResourceTestCommand;
 import org.jboss.forge.addon.shell.test.ShellTest;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.forge.furnace.util.OperatingSystemUtils;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,17 +43,16 @@ import org.junit.runner.RunWith;
 public class ShellResourceTest
 {
    @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:shell-test-harness")
+   @AddonDependencies({
+            @AddonDependency(name = "org.jboss.forge.addon:shell-test-harness"),
+            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
+
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap.create(AddonArchive.class)
                .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.addon:shell-test-harness"),
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi")
-               );
+               .addClass(ResourceTestCommand.class);
 
       return archive;
    }
@@ -68,6 +67,12 @@ public class ShellResourceTest
    public void setUp() throws Exception
    {
       shellTest.clearScreen();
+   }
+
+   @After
+   public void tearDown() throws Exception
+   {
+      shellTest.close();
    }
 
    @Test(timeout = 10000)
@@ -106,7 +111,7 @@ public class ShellResourceTest
    @Test(timeout = 10000)
    public void testChangeDirCommandCompletion() throws TimeoutException
    {
-      shellTest.waitForCompletion("cd ", "cd", 5, TimeUnit.SECONDS);
+      shellTest.waitForCompletion("cd ", "cd", 15, TimeUnit.SECONDS);
    }
 
    @Test(timeout = 10000)
@@ -139,7 +144,7 @@ public class ShellResourceTest
       shell.setCurrentResource(tempResource);
       Result changeDirResult = shellTest.execute("cd child", 10, TimeUnit.SECONDS);
       Assert.assertTrue(changeDirResult instanceof Failed);
-      Assert.assertEquals("child: No such file or directory", changeDirResult.getMessage());
+      Assert.assertEquals("child: Child resource doesn't exist", changeDirResult.getMessage());
    }
 
    @Test(timeout = 10000)
@@ -223,4 +228,17 @@ public class ShellResourceTest
       tempDir.delete();
    }
 
+   @Test(timeout = 10000)
+   public void testResolveResources() throws Exception
+   {
+      String userHomePath = OperatingSystemUtils.getUserHomePath();
+      shellTest.execute("resourcecommand --single-file-resource ~", 10, TimeUnit.SECONDS);
+      Assert.assertThat(shellTest.getStdOut(), containsString("Single File Resource: " + userHomePath));
+
+      shellTest.clearScreen();
+
+      shellTest.execute("resourcecommand --single-file-resource .", 10, TimeUnit.SECONDS);
+      Assert.assertThat(shellTest.getStdOut(), containsString("Single File Resource: "
+               + shellTest.getShell().getCurrentResource()));
+   }
 }

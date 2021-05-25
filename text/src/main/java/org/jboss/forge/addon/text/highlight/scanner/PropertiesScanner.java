@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.text.highlight.scanner;
 
 import java.util.Map;
@@ -13,7 +19,7 @@ public class PropertiesScanner implements Scanner
 {
 
    private static final Pattern COMMENT = Pattern.compile("^(#|!).*");
-   private static final Pattern KEY = Pattern.compile("((\\w)|(\\\\\\s))+(?=\\s?+(=|:))");
+   private static final Pattern KEY = Pattern.compile("((\\w)|(\\\\\\s)|(\\.))+(?=\\s?+(=|:))");
    private static final Pattern OPERATOR = Pattern.compile("=|:");
    private static final Pattern SPACE = Pattern.compile("\\s+");
    private static final Pattern VALUE = Pattern.compile(".*");
@@ -24,14 +30,14 @@ public class PropertiesScanner implements Scanner
 
    public enum State
    {
-      initial,
-      value
+      initial, value
    }
 
    public static final Type TYPE = new Type("PROPERTIES", "\\.(properties)$");
 
    @Override
-   public Type getType() {
+   public Type getType()
+   {
       return TYPE;
    }
 

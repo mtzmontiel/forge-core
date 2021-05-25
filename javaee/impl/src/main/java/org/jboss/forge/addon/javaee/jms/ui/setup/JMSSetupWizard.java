@@ -1,20 +1,20 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.jms.ui.setup;
 
 import javax.inject.Inject;
 
 import org.jboss.forge.addon.facets.FacetFactory;
 import org.jboss.forge.addon.facets.constraints.FacetConstraint;
-import org.jboss.forge.addon.javaee.facets.JMSFacet;
+import org.jboss.forge.addon.javaee.jms.JMSFacet;
 import org.jboss.forge.addon.javaee.ui.AbstractJavaEECommand;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.facets.DependencyFacet;
+import org.jboss.forge.addon.projects.stacks.annotations.StackConstraint;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
@@ -32,6 +32,7 @@ import org.jboss.forge.addon.ui.util.Metadata;
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
 @FacetConstraint(DependencyFacet.class)
+@StackConstraint(JMSFacet.class)
 public class JMSSetupWizard extends AbstractJavaEECommand
 {
 
@@ -53,7 +54,11 @@ public class JMSSetupWizard extends AbstractJavaEECommand
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
-      builder.add(jmsVersion);
+      Project project = getSelectedProject(builder);
+      if (filterValueChoicesFromStack(project, jmsVersion))
+      {
+         builder.add(jmsVersion);
+      }
    }
 
    @Override

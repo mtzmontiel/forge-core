@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.command;
 
 import javax.enterprise.inject.Vetoed;
@@ -26,7 +25,9 @@ import org.jboss.forge.addon.ui.result.navigation.NavigationResultBuilder;
 import org.jboss.forge.addon.ui.wizard.UIWizard;
 
 /**
- * Adds the Setup steps on {@link AbstractJavaEECommand}
+ * Adds the {@link NavigationResult} steps provided by
+ * {@link PrerequisiteCommandsProvider#getPrerequisiteCommands(UIContext)} as the first steps to be executed only if the
+ * requested {@link UICommand} implements the {@link PrerequisiteCommandsProvider} interface
  * 
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */

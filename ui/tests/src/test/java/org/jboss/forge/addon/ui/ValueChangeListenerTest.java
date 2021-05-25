@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -25,9 +24,9 @@ import org.jboss.forge.addon.ui.input.UISelectOne;
 import org.jboss.forge.addon.ui.input.ValueChangeListener;
 import org.jboss.forge.addon.ui.input.events.ValueChangeEvent;
 import org.jboss.forge.addon.ui.util.InputComponents;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
+import org.jboss.forge.arquillian.AddonDeployment;
+import org.jboss.forge.arquillian.AddonDeployments;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
@@ -42,12 +41,12 @@ import org.junit.runner.RunWith;
 public class ValueChangeListenerTest
 {
    @Deployment
-   @Dependencies({ @AddonDependency(name = "org.jboss.forge.addon:ui-test-harness"),
-            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi") })
-   public static ForgeArchive getDeployment()
+   @AddonDeployments({ @AddonDeployment(name = "org.jboss.forge.addon:ui-test-harness"),
+            @AddonDeployment(name = "org.jboss.forge.furnace.container:cdi") })
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap
+               .create(AddonArchive.class)
                .addBeansXML()
                .addAsAddonDependencies(
                         AddonDependencyEntry.create("org.jboss.forge.addon:ui-test-harness"),
@@ -84,6 +83,15 @@ public class ValueChangeListenerTest
       assertExpectedValues("Default Value", "Value 1", valueEventList.get(0));
       assertExpectedValues("Value 1", "Value 2", valueEventList.get(1));
       assertExpectedValues("Value 2", "Value 3", valueEventList.get(2));
+
+      Assert.assertArrayEquals(new int[0], valueEventList.get(0).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[0], valueEventList.get(0).getNewSelectedIndexes());
+
+      Assert.assertArrayEquals(new int[0], valueEventList.get(1).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[0], valueEventList.get(1).getNewSelectedIndexes());
+
+      Assert.assertArrayEquals(new int[0], valueEventList.get(2).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[0], valueEventList.get(2).getNewSelectedIndexes());
    }
 
    @Test
@@ -102,6 +110,15 @@ public class ValueChangeListenerTest
       assertExpectedValues(Arrays.asList("Default Value"), Arrays.asList("Value 1"), valueEventList.get(0));
       assertExpectedValues(Arrays.asList("Value 1"), Arrays.asList("Value 2"), valueEventList.get(1));
       assertExpectedValues(Arrays.asList("Value 2"), Arrays.asList("Value 3"), valueEventList.get(2));
+
+      Assert.assertArrayEquals(new int[0], valueEventList.get(0).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[0], valueEventList.get(0).getNewSelectedIndexes());
+
+      Assert.assertArrayEquals(new int[0], valueEventList.get(1).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[0], valueEventList.get(1).getNewSelectedIndexes());
+
+      Assert.assertArrayEquals(new int[0], valueEventList.get(2).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[0], valueEventList.get(2).getNewSelectedIndexes());
    }
 
    @Test
@@ -121,6 +138,15 @@ public class ValueChangeListenerTest
       assertExpectedValues("Default Value", "Value 1", valueEventList.get(0));
       assertExpectedValues("Value 1", "Value 2", valueEventList.get(1));
       assertExpectedValues("Value 2", "Value 3", valueEventList.get(2));
+
+      Assert.assertArrayEquals(new int[] { 0 }, valueEventList.get(0).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[] { 1 }, valueEventList.get(0).getNewSelectedIndexes());
+
+      Assert.assertArrayEquals(new int[] { 1 }, valueEventList.get(1).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[] { 2 }, valueEventList.get(1).getNewSelectedIndexes());
+
+      Assert.assertArrayEquals(new int[] { 2 }, valueEventList.get(2).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[] { 3 }, valueEventList.get(2).getNewSelectedIndexes());
    }
 
    @Test
@@ -134,13 +160,21 @@ public class ValueChangeListenerTest
       selectMany.addValueChangeListener(new CollectValueChangeListener(valueEventList));
       selectMany.setValue(Arrays.asList("Value 1"));
       selectMany.setValue(Arrays.asList("Value 2"));
-      selectMany.setValue(Arrays.asList("Value 3"));
-      selectMany.setValue(Arrays.asList("Value 3"));
+      selectMany.setValue(Arrays.asList("Value 2", "Value 3"));
 
       Assert.assertEquals(3, valueEventList.size());
       assertExpectedValues(Arrays.asList("Default Value"), Arrays.asList("Value 1"), valueEventList.get(0));
       assertExpectedValues(Arrays.asList("Value 1"), Arrays.asList("Value 2"), valueEventList.get(1));
-      assertExpectedValues(Arrays.asList("Value 2"), Arrays.asList("Value 3"), valueEventList.get(2));
+      assertExpectedValues(Arrays.asList("Value 2"), Arrays.asList("Value 2", "Value 3"), valueEventList.get(2));
+
+      Assert.assertArrayEquals(new int[] { 0 }, valueEventList.get(0).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[] { 1 }, valueEventList.get(0).getNewSelectedIndexes());
+
+      Assert.assertArrayEquals(new int[] { 1 }, valueEventList.get(1).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[] { 2 }, valueEventList.get(1).getNewSelectedIndexes());
+
+      Assert.assertArrayEquals(new int[] { 2 }, valueEventList.get(2).getOldSelectedIndexes());
+      Assert.assertArrayEquals(new int[] { 2, 3 }, valueEventList.get(2).getNewSelectedIndexes());
    }
 
    private void assertExpectedValues(Iterable<?> oldValue, Iterable<?> newValue, ValueChangeEvent evt)

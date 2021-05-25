@@ -1,19 +1,15 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.maven.projects.facets;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-
-import javax.enterprise.context.Dependent;
-import javax.inject.Inject;
 
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
@@ -26,21 +22,18 @@ import org.jboss.forge.addon.maven.projects.MavenFacet;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectProvider;
 import org.jboss.forge.addon.projects.facets.MetadataFacet;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@Dependent
 @FacetConstraint(MavenFacet.class)
-public class MavenMetadataFacet extends AbstractFacet<Project> implements MetadataFacet
+public class MavenMetadataFacet extends AbstractFacet<Project>implements MetadataFacet
 {
-   @Inject
-   private MavenBuildSystem buildSystem;
-
    @Override
    public ProjectProvider getProjectProvider()
    {
-      return buildSystem;
+      return SimpleContainer.getServices(getClass().getClassLoader(), MavenBuildSystem.class).get();
    }
 
    @Override

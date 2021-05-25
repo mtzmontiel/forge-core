@@ -1,14 +1,20 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.shell.command;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.not;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
-import org.hamcrest.CoreMatchers;
-import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
@@ -16,58 +22,41 @@ import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.shell.test.ShellTest;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(Arquillian.class)
 public class CatCommandTest
 {
-   @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:maven"),
-            @AddonDependency(name = "org.jboss.forge.addon:ui"),
-            @AddonDependency(name = "org.jboss.forge.addon:projects"),
-            @AddonDependency(name = "org.jboss.forge.addon:shell-test-harness"),
-            @AddonDependency(name = "org.jboss.forge.addon:resources"),
-            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
-   })
-   public static ForgeArchive getDeployment()
-   {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:shell-test-harness"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:resources"),
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi")
-               );
-
-      return archive;
-   }
-
    @Inject
    private ShellTest shellTest;
 
    @Inject
    private ProjectFactory projectFactory;
 
-   @Test(timeout = 10000)
+   @Before
+   public void setUp() throws Exception
+   {
+      shellTest.clearScreen();
+   }
+
+   @After
+   public void tearDown() throws Exception
+   {
+      shellTest.close();
+   }
+
+   @Test
    public void testCatCommandInvalidArgument() throws Exception
    {
-      Result result = shellTest.execute("cat foo bar", 5, TimeUnit.SECONDS);
-      Assert.assertTrue(result instanceof Failed);
-      String out = shellTest.getStdOut();
-      Assert.assertThat(out, containsString("cat: foo: No such file or directory"));
-      Assert.assertThat(out, containsString("cat: bar: No such file or directory"));
+      Result result = shellTest.execute("cat foo bar", 15, TimeUnit.SECONDS);
+      Assert.assertThat(result, instanceOf(Failed.class));
+      String err = shellTest.getStdErr();
+      Assert.assertThat(err, containsString("cat: foo: No such file or directory"));
+      Assert.assertThat(err, containsString("cat: bar: No such file or directory"));
    }
 
    @Test
@@ -80,8 +69,8 @@ public class CatCommandTest
       FileResource<?> source = project.getRoot().getChild(target.getName()).reify(FileResource.class);
       source.setContents("public void test() {}");
 
-      shellTest.execute("cat " + source.getFullyQualifiedName(), 5, TimeUnit.SECONDS);
-      Assert.assertThat(shellTest.getStdOut(), CoreMatchers.containsString("test()"));
+      shellTest.execute("cat " + source.getFullyQualifiedName(), 15, TimeUnit.SECONDS);
+      Assert.assertThat(shellTest.getStdOut(), containsString("test()"));
    }
 
    @Test
@@ -94,8 +83,25 @@ public class CatCommandTest
       FileResource<?> source = project.getRoot().getChild(target.getName()).reify(FileResource.class);
       source.setContents("public void test() {}");
 
-      shellTest.execute("cat " + source.getFullyQualifiedName() + " --color", 5, TimeUnit.SECONDS);
+      shellTest.execute("cat " + source.getFullyQualifiedName() + " --color", 15, TimeUnit.SECONDS);
       // the string should be colors, so there are color codes between the statements
-      Assert.assertThat(shellTest.getStdOut(), CoreMatchers.not(CoreMatchers.containsString("public void")));
+      Assert.assertThat(shellTest.getStdOut(), not(containsString("public void")));
+   }
+
+   @Test
+   // FORGE-2421
+   public void testCatColoredCommandMissingType() throws Exception
+   {
+      Project project = projectFactory.createTempProject();
+      File target = new File(project.getRoot().getFullyQualifiedName(), "test");
+      target.createNewFile();
+
+      FileResource<?> source = project.getRoot().getChild(target.getName()).reify(FileResource.class);
+      source.setContents("public void test() {}");
+
+      shellTest.execute("cat " + source.getFullyQualifiedName() + " --color", 15, TimeUnit.SECONDS);
+      Assert.assertThat(shellTest.getStdErr(), containsString("Error while rendering output in color"));
+      // the string should not be colored
+      Assert.assertThat(shellTest.getStdOut(), containsString("public void"));
    }
 }

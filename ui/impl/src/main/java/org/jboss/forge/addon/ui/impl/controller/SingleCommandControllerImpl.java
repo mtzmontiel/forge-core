@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.controller;
 
 import java.util.LinkedHashSet;
@@ -23,6 +22,7 @@ import org.jboss.forge.addon.ui.impl.context.UIBuilderImpl;
 import org.jboss.forge.addon.ui.impl.context.UIExecutionContextImpl;
 import org.jboss.forge.addon.ui.impl.context.UIValidationContextImpl;
 import org.jboss.forge.addon.ui.input.InputComponent;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.addon.ui.input.UIPrompt;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
 import org.jboss.forge.addon.ui.output.UIMessage;
@@ -30,9 +30,11 @@ import org.jboss.forge.addon.ui.output.UIMessage.Severity;
 import org.jboss.forge.addon.ui.progress.UIProgressMonitor;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.util.InputComponents;
+import org.jboss.forge.addon.ui.validate.UIValidationListener;
 import org.jboss.forge.furnace.addons.AddonRegistry;
 
 /**
+ * Default implementation of the {@link SingleCommandController} interface
  * 
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
@@ -40,12 +42,14 @@ import org.jboss.forge.furnace.addons.AddonRegistry;
 class SingleCommandControllerImpl extends AbstractCommandController implements SingleCommandController
 {
    private UIBuilderImpl uiBuilder;
-   private ConverterFactory converterFactory;
+   private final ConverterFactory converterFactory;
+   private final InputComponentFactory inputComponentFactory;
 
    SingleCommandControllerImpl(AddonRegistry addonRegistry, UIRuntime runtime, UICommand command, UIContext context)
    {
       super(addonRegistry, runtime, command, context);
       this.converterFactory = addonRegistry.getServices(ConverterFactory.class).get();
+      this.inputComponentFactory = addonRegistry.getServices(InputComponentFactory.class).get();
    }
 
    @Override
@@ -53,7 +57,7 @@ class SingleCommandControllerImpl extends AbstractCommandController implements S
    {
       if (!isInitialized())
       {
-         uiBuilder = new UIBuilderImpl(context);
+         uiBuilder = new UIBuilderImpl(context, inputComponentFactory);
          initialCommand.initializeUI(uiBuilder);
       }
    }
@@ -88,12 +92,15 @@ class SingleCommandControllerImpl extends AbstractCommandController implements S
       try
       {
          Result result = initialCommand.execute(executionContext);
-         firePostCommandExecuted(executionContext, listeners, initialCommand, result);
+         // If exiting, don't do anything
+         if (!Boolean.TRUE.equals(context.getAttributeMap().get("org.jboss.forge.exit")))
+            firePostCommandExecuted(executionContext, listeners, initialCommand, result);
          return result;
       }
       catch (Exception e)
       {
-         firePostCommandFailure(executionContext, listeners, initialCommand, e);
+         if (!Boolean.TRUE.equals(context.getAttributeMap().get("org.jboss.forge.exit")))
+            firePostCommandFailure(executionContext, listeners, initialCommand, e);
          throw e;
       }
    }
@@ -111,16 +118,29 @@ class SingleCommandControllerImpl extends AbstractCommandController implements S
       return uiBuilder.getInputs();
    }
 
-   @SuppressWarnings("unchecked")
+   @Override
+   public InputComponent<?, ?> getInput(String inputName)
+   {
+      return getInputs().get(inputName);
+   }
+
+   @Override
+   public boolean hasInput(String inputName)
+   {
+      return getInputs().containsKey(inputName);
+   }
+
    @Override
    public CommandController setValueFor(String inputName, Object value)
    {
-      InputComponent<?, ?> input = getInputs().get(inputName);
+      Map<String, InputComponent<?, ?>> inputs = getInputs();
+      InputComponent<?, ?> input = inputs.get(inputName);
       if (input == null)
       {
-         throw new IllegalArgumentException("Input named '" + inputName + "' does not exist");
+         throw new IllegalArgumentException(
+                  "Input named '" + inputName + "' does not exist. Valid values: " + inputs.keySet());
       }
-      InputComponents.setValueFor(getConverterFactory(), (InputComponent<?, Object>) input, value);
+      InputComponents.setValueFor(getConverterFactory(), input, value);
       return this;
    }
 
@@ -148,15 +168,26 @@ class SingleCommandControllerImpl extends AbstractCommandController implements S
    {
       assertInitialized();
       UIValidationContextImpl validationContext = new UIValidationContextImpl(context);
-      for (InputComponent<?, ?> inputComponent : getInputs().values())
+      for (UIValidationListener validator : addonRegistry.getServices(UIValidationListener.class))
       {
-         validationContext.setCurrentInputComponent(inputComponent);
-         inputComponent.validate(validationContext);
+         validator.preValidate(validationContext, getCommand(), getInputs().values());
       }
-      validationContext.setCurrentInputComponent(null);
+      if (!containsErrorMessage(validationContext.getMessages()))
+      {
+         for (InputComponent<?, ?> inputComponent : getInputs().values())
+         {
+            validationContext.setCurrentInputComponent(inputComponent);
+            inputComponent.validate(validationContext);
+         }
+         validationContext.setCurrentInputComponent(null);
+      }
       if (!containsErrorMessage(validationContext.getMessages()))
       {
          initialCommand.validate(validationContext);
+      }
+      for (UIValidationListener validator : addonRegistry.getServices(UIValidationListener.class))
+      {
+         validator.postValidate(validationContext, getCommand(), getInputs().values());
       }
       return validationContext.getMessages();
    }

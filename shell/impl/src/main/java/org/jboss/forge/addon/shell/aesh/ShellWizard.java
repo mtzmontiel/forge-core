@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.aesh;
 
 import java.util.LinkedHashMap;
@@ -16,6 +15,7 @@ import org.jboss.forge.addon.shell.ShellImpl;
 import org.jboss.forge.addon.shell.ui.ShellContext;
 import org.jboss.forge.addon.ui.controller.WizardCommandController;
 import org.jboss.forge.addon.ui.input.InputComponent;
+import org.jboss.forge.addon.ui.output.UIOutput;
 
 /**
  * Encapsulates the {@link WizardCommandController}.
@@ -25,6 +25,7 @@ import org.jboss.forge.addon.ui.input.InputComponent;
  */
 public class ShellWizard extends AbstractShellInteraction
 {
+
    public ShellWizard(WizardCommandController wizardCommandController, ShellContext shellContext,
             CommandLineUtil commandLineUtil, ForgeCommandRegistry forgeCommandRegistry)
    {
@@ -38,28 +39,30 @@ public class ShellWizard extends AbstractShellInteraction
    }
 
    @Override
-   public CommandLineParser getParser(ShellContext shellContext, String completeLine) throws Exception
+   public CommandLineParser<?> getParser(ShellContext shellContext, String completeLine, CommandAdapter commandAdapter)
+            throws Exception
    {
       getController().initialize();
-      return populate(shellContext, completeLine, new LinkedHashMap<String, InputComponent<?, ?>>(),
+      return populate(commandAdapter, shellContext, completeLine, new LinkedHashMap<String, InputComponent<?, ?>>(),
                new LinkedHashMap<String, InputComponent<?, ?>>());
    }
 
-   private CommandLineParser populate(ShellContext shellContext, String line,
+   private CommandLineParser<?> populate(CommandAdapter commandAdapter, ShellContext shellContext, String line,
             final Map<String, InputComponent<?, ?>> allInputs, Map<String, InputComponent<?, ?>> lastPage)
-            throws Exception
+                     throws Exception
    {
       WizardCommandController controller = getController();
       Map<String, InputComponent<?, ?>> pageInputs = new LinkedHashMap<>(controller.getInputs());
       allInputs.putAll(pageInputs);
-      CommandLineParser parser = commandLineUtil.generateParser(controller, shellContext, allInputs);
-      CommandLine cmdLine = parser.parse(line, true);
-      Map<String, InputComponent<?, ?>> populatedInputs = commandLineUtil.populateUIInputs(cmdLine, allInputs);
+      CommandLineParser<?> parser = commandLineUtil.generateParser(commandAdapter, controller, shellContext, allInputs);
+      CommandLine<?> cmdLine = parser.parse(line, true);
+      Map<String, InputComponent<?, ?>> populatedInputs = commandLineUtil.populateUIInputs(cmdLine, allInputs,
+               shellContext);
 
       // Second pass to ensure disabled fields are set
-      parser = commandLineUtil.generateParser(controller, shellContext, allInputs);
+      parser = commandLineUtil.generateParser(commandAdapter, controller, shellContext, allInputs);
       cmdLine = parser.parse(line, true);
-      populatedInputs = commandLineUtil.populateUIInputs(cmdLine, allInputs);
+      populatedInputs = commandLineUtil.populateUIInputs(cmdLine, allInputs, shellContext);
 
       boolean inputsChanged = false;
       for (String input : pageInputs.keySet())
@@ -78,20 +81,32 @@ public class ShellWizard extends AbstractShellInteraction
       if (controller.canMoveToNextStep())
       {
          controller.next().initialize();
-         parser = populate(shellContext, line, allInputs, pageInputs);
+         parser = populate(commandAdapter, shellContext, line, allInputs, pageInputs);
       }
       else if (inputsChanged)
       {
-         parser = commandLineUtil.generateParser(controller, shellContext, allInputs);
+         parser = commandLineUtil.generateParser(commandAdapter, controller, shellContext, allInputs);
       }
       return parser;
    }
 
    @Override
-   public void promptRequiredMissingValues(ShellImpl shell)
+   public boolean promptRequiredMissingValues(ShellImpl shell) throws InterruptedException
    {
       WizardCommandController controller = getController();
-      promptRequiredMissingValues(shell, controller.getInputs().values());
+      boolean interactiveModeEnabled = false;
+      UIOutput output = shell.getOutput();
+      if (hasMissingRequiredInputValues(controller.getInputs().values()))
+      {
+         if (!getContext().isInteractive())
+         {
+            output.error(output.err(), NON_INTERACTIVE_MODE_MESSAGE);
+            return false;
+         }
+         output.info(output.out(), INTERACTIVE_MODE_MESSAGE);
+         interactiveModeEnabled = true;
+         promptRequiredMissingValues(shell, controller.getInputs().values());
+      }
       while (controller.canMoveToNextStep())
       {
          try
@@ -103,7 +118,21 @@ public class ShellWizard extends AbstractShellInteraction
             // TODO: Log this
             break;
          }
-         promptRequiredMissingValues(shell, controller.getInputs().values());
+         if (hasMissingRequiredInputValues(controller.getInputs().values()))
+         {
+            if (!interactiveModeEnabled)
+            {
+               if (!getContext().isInteractive())
+               {
+                  output.error(output.out(), NON_INTERACTIVE_MODE_MESSAGE);
+                  return false;
+               }
+               output.info(output.out(), INTERACTIVE_MODE_MESSAGE);
+               interactiveModeEnabled = true;
+            }
+            promptRequiredMissingValues(shell, controller.getInputs().values());
+         }
       }
+      return true;
    }
 }

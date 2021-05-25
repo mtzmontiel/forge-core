@@ -1,35 +1,62 @@
-/*
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.addon.configuration;
 
-import javax.enterprise.inject.Vetoed;
+import java.util.Collections;
+import java.util.Iterator;
 
-import org.apache.commons.configuration.HierarchicalConfiguration;
+import javax.enterprise.inject.Vetoed;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
+ * @author <a href="mailto:danielsoro@gmail.com">Daniel Cunha (soro)</a>
  */
 @Vetoed
 public class ConfigurationAdapterSubset extends ConfigurationAdapter
 {
-   private final HierarchicalConfiguration parent;
+   private final org.apache.commons.configuration.Configuration parent;
    private final String prefix;
 
-   public ConfigurationAdapterSubset(HierarchicalConfiguration delegate, String prefix)
+   public ConfigurationAdapterSubset(org.apache.commons.configuration.Configuration delegate, String prefix)
    {
+      super(delegate.subset(prefix));
       this.parent = delegate;
       this.prefix = prefix;
+   }
 
-      synchronized (delegate)
+   @Override
+   public Iterator<String> getKeys()
+   {
+      synchronized (parent)
       {
-         if (delegate.containsKey(prefix))
-            setDelegate(delegate.configurationAt(prefix, true));
-         else
-            setDelegate((HierarchicalConfiguration) delegate.subset(prefix));
+         try
+         {
+            return parent.subset(prefix).getKeys();
+         }
+         catch (IllegalArgumentException e)
+         {
+            return Collections.emptyIterator();
+         }
+      }
+   }
+
+   @Override
+   public void clearProperty(String key)
+   {
+      synchronized (parent)
+      {
+         try
+         {
+            parent.subset(prefix).clearProperty(key);
+         }
+         catch (IllegalArgumentException e)
+         {
+            // do nothing;
+         }
       }
    }
 
@@ -38,13 +65,14 @@ public class ConfigurationAdapterSubset extends ConfigurationAdapter
    {
       synchronized (parent)
       {
-         if (!parent.containsKey(prefix))
+         try
          {
-            parent.setProperty(prefix, "");
-            setDelegate(parent.configurationAt(prefix));
+            parent.subset(prefix).setProperty(key, value);
          }
-         getDelegate().setProperty(key, value);
+         catch (IllegalArgumentException e)
+         {
+            parent.setProperty(prefix + "." + key, value);
+         }
       }
    }
-
 }

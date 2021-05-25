@@ -1,14 +1,14 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui;
 
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.input.UIPrompt;
+import org.jboss.forge.addon.ui.progress.DefaultUIProgressMonitor;
 import org.jboss.forge.addon.ui.progress.UIProgressMonitor;
 
 /**
@@ -21,7 +21,10 @@ public interface UIRuntime
    /**
     * Creates a new {@link UIProgressMonitor}
     */
-   UIProgressMonitor createProgressMonitor(UIContext context);
+   default UIProgressMonitor createProgressMonitor(UIContext context)
+   {
+      return new DefaultUIProgressMonitor();
+   }
 
    /**
     * Create a new {@link UIPrompt}

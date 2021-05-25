@@ -1,6 +1,10 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.projects.ui.dependencies;
-
-import javax.inject.Inject;
 
 import org.jboss.forge.addon.dependencies.Dependency;
 import org.jboss.forge.addon.dependencies.builder.DependencyBuilder;
@@ -13,41 +17,37 @@ import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.addon.ui.input.UIInputMany;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 
 @FacetConstraint(DependencyFacet.class)
 public class AddDependenciesCommandImpl extends AbstractProjectCommand implements AddDependenciesCommand
 {
-   @Override
-   public UICommandMetadata getMetadata(UIContext context)
-   {
-      return Metadata.forCommand(AddDependenciesCommandImpl.class)
-               .description("Add one or more arguments to the current project.")
-               .name("Project: Add Dependencies")
-               .category(Categories.create("Project", "Manage"));
-   }
-
-   @Inject
-   private ProjectFactory factory;
-
-   @Inject
-   private DependencyInstaller installer;
-
-   @Inject
-   @WithAttributes(shortName = 'd', label = "Coordinates", required = true,
-            description = "The coordinates of the arguments to be added [groupId :artifactId {:version :scope :packaging}]")
-   private UIInputMany<Dependency> arguments;
+   private UIInputMany<String> arguments;
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      InputComponentFactory factory = builder.getInputComponentFactory();
+      arguments = factory.createInputMany("arguments", 'd', String.class).setLabel("Coordinates").setRequired(true)
+               .setDescription(
+                        "The coordinates of the arguments to be added [groupId :artifactId {:version :scope :packaging}]");
       builder.add(arguments);
+   }
+
+   @Override
+   public UICommandMetadata getMetadata(UIContext context)
+   {
+      return Metadata.forCommand(AddDependenciesCommandImpl.class)
+               .description("Add one or more dependencies to the current project.")
+               .name("Project: Add Dependencies")
+               .category(Categories.create("Project", "Manage"));
    }
 
    @Override
@@ -59,25 +59,28 @@ public class AddDependenciesCommandImpl extends AbstractProjectCommand implement
       if (arguments.hasValue())
       {
          int count = 0;
-         for (Dependency gav : arguments.getValue())
+         DependencyInstaller installer = SimpleContainer
+                  .getServices(getClass().getClassLoader(), DependencyInstaller.class).get();
+         for (String gav : arguments.getValue())
          {
-            Dependency existingDep = deps.getEffectiveManagedDependency(DependencyBuilder.create(gav).setVersion(null));
+            DependencyBuilder dep = DependencyBuilder.create(gav);
+            Dependency existingDep = deps.getEffectiveManagedDependency(DependencyBuilder.create(dep).setVersion(null));
             if (existingDep != null)
             {
                if (context.getPrompt().promptBoolean(String.format(
                         "Dependency [%s:%s] is currently managed. "
                                  + "Reference the existing managed dependency [%s:%s:%s]?",
-                        gav.getCoordinate().getArtifactId(),
-                        gav.getCoordinate().getGroupId(),
+                        dep.getCoordinate().getArtifactId(),
+                        dep.getCoordinate().getGroupId(),
                         existingDep.getCoordinate().getGroupId(),
                         existingDep.getCoordinate().getArtifactId(),
                         existingDep.getCoordinate().getVersion())))
                {
-                  gav = DependencyBuilder.create(existingDep).setScopeType(gav.getScopeType());
+                  dep = DependencyBuilder.create(existingDep).setScopeType(dep.getScopeType());
                }
             }
 
-            this.installer.install(project, gav);
+            installer.install(project, dep);
             count++;
          }
 
@@ -95,6 +98,7 @@ public class AddDependenciesCommandImpl extends AbstractProjectCommand implement
    @Override
    protected ProjectFactory getProjectFactory()
    {
-      return factory;
+      return SimpleContainer
+               .getServices(getClass().getClassLoader(), ProjectFactory.class).get();
    }
 }

@@ -1,6 +1,13 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.shell;
 
 import java.io.ByteArrayInputStream;
+import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -59,12 +66,14 @@ public class ShellInitializer
          Settings settings = new SettingsBuilder().inputStream(new ByteArrayInputStream(command.getBytes()))
                   .outputStream(System.out).outputStreamError(System.err).ansi(false).create();
          this.shell = shellFactory.createShell(OperatingSystemUtils.getWorkingDir(), settings);
-         this.shell.getConsole().getExportManager().addVariable("export INTERACTIVE=false");
       }
       else if (Boolean.getBoolean("forge.standalone"))
       {
-         Settings settings = new SettingsBuilder().create();
-         this.shell = shellFactory.createShell(OperatingSystemUtils.getWorkingDir(), settings);
+         // Starting the shell in a separate thread
+         ForkJoinPool.commonPool().submit(() -> {
+            Settings settings = new SettingsBuilder().create();
+            ShellInitializer.this.shell = shellFactory.createShell(OperatingSystemUtils.getWorkingDir(), settings);
+         });
       }
    }
 

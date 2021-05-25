@@ -1,27 +1,22 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.rest;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 
-import javax.inject.Inject;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.core.MediaType;
 
-import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -32,24 +27,13 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class ClientTest
 {
-   @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:rest-client"),
-            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi") })
-   public static ForgeArchive getDeployment()
-   {
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:rest-client")
-               );
-
-      return archive;
-   }
-
-   @Inject
    ClientFactory clientFactory;
+
+   @Before
+   public void setUp()
+   {
+      clientFactory = SimpleContainer.getServices(getClass().getClassLoader(), ClientFactory.class).get();
+   }
 
    @Test
    public void testClientImplementationAvailable() throws Exception
@@ -62,6 +46,7 @@ public class ClientTest
    }
 
    @Test
+   @Ignore("Use a local HTTP server")
    public void testGetRequest()
    {
       Client client = clientFactory.createClient();

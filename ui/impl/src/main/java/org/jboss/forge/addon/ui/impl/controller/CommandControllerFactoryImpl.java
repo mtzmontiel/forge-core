@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.controller;
 
 import java.util.logging.Logger;
@@ -22,7 +21,6 @@ import org.jboss.forge.addon.ui.controller.SingleCommandController;
 import org.jboss.forge.addon.ui.controller.WizardCommandController;
 import org.jboss.forge.addon.ui.wizard.UIWizard;
 import org.jboss.forge.furnace.addons.AddonRegistry;
-import org.jboss.forge.furnace.proxy.Proxies;
 import org.jboss.forge.furnace.services.Imported;
 
 /**
@@ -92,7 +90,7 @@ public class CommandControllerFactoryImpl implements CommandControllerFactory
          if (tmpCommand == null)
          {
             log.warning(UICommandTransformer.class.getName() + " implementation "
-                     + Proxies.unwrapProxyClassName(transformer.getClass())
+                     + transformer.getClass().getName()
                      + " should not have returned null. Ignoring.");
          }
          else
@@ -103,7 +101,7 @@ public class CommandControllerFactoryImpl implements CommandControllerFactory
       return command;
    }
 
-   WizardCommandController doCreateWizardController(final UIContext context, final UIRuntime runtime,
+   protected WizardCommandController doCreateWizardController(final UIContext context, final UIRuntime runtime,
             final UIWizard wizard)
    {
       WizardCommandControllerImpl controller = new WizardCommandControllerImpl(context, addonRegistry, runtime,
@@ -111,7 +109,7 @@ public class CommandControllerFactoryImpl implements CommandControllerFactory
       return new NoUIWizardControllerDecorator(controller);
    }
 
-   SingleCommandController doCreateSingleController(final UIContext context, final UIRuntime runtime,
+   protected SingleCommandController doCreateSingleController(final UIContext context, final UIRuntime runtime,
             final UICommand command)
    {
       return new SingleCommandControllerImpl(addonRegistry, runtime, command, context);

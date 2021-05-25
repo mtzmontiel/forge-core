@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -16,7 +16,6 @@ import javax.inject.Inject;
 import org.jboss.forge.addon.dependencies.Dependency;
 import org.jboss.forge.addon.dependencies.builder.DependencyBuilder;
 import org.jboss.forge.addon.javaee.AbstractJavaEEFacet;
-import org.jboss.forge.addon.javaee.facets.JSTLFacet;
 import org.jboss.forge.addon.javaee.jta.JTAFacet;
 import org.jboss.forge.addon.projects.dependencies.DependencyInstaller;
 import org.jboss.forge.furnace.versions.SingleVersion;
@@ -40,9 +39,15 @@ public class JSTLFacetImpl extends AbstractJavaEEFacet implements JSTLFacet
    }
 
    @Override
+   public String getSpecName()
+   {
+      return "JSTL";
+   }
+
+   @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("1.2");
+      return SingleVersion.valueOf("1.2");
    }
 
    @Override

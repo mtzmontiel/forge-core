@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -128,6 +128,13 @@ public interface Resource<T> extends Faceted<ResourceFacet>
    <R extends Resource<?>> R reify(final Class<R> type);
 
    /**
+    * Ask this {@link Resource} if it is actually a resource of the given type; if it is, return a new reference to the
+    * resource as the given type, otherwise return <code>null</code>.
+    */
+   default <R extends Resource<?>> R as(final Class<R> type) {
+      return reify(type);
+   }
+   /**
     * Return the {@link ResourceFactory} with which this {@link Resource} was created. If no factory was used, return
     * <code>null</code>.
     */
@@ -136,7 +143,6 @@ public interface Resource<T> extends Faceted<ResourceFacet>
    /**
     * Resolve children resources from this {@link Resource} given a specific path.
     * 
-    * @see ResourcePathResolver
     * @see ResourcePathResolver#resolve()
     */
    List<Resource<?>> resolveChildren(String path);

@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.parser.json;
 
 import java.io.File;
@@ -24,9 +23,9 @@ import org.jboss.forge.addon.parser.json.resource.JsonResource;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceException;
 import org.jboss.forge.addon.resource.ResourceFactory;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
+import org.jboss.forge.arquillian.AddonDeployment;
+import org.jboss.forge.arquillian.AddonDeployments;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
@@ -42,21 +41,20 @@ public class JsonTestCase
 {
 
    @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi"),
-            @AddonDependency(name = "org.jboss.forge.addon:resources"),
-            @AddonDependency(name = "org.jboss.forge.addon:parser-json")
+   @AddonDeployments({
+            @AddonDeployment(name = "org.jboss.forge.furnace.container:cdi"),
+            @AddonDeployment(name = "org.jboss.forge.addon:resources"),
+            @AddonDeployment(name = "org.jboss.forge.addon:parser-json")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap
+               .create(AddonArchive.class)
                .addBeansXML()
                .addAsAddonDependencies(
                         AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
                         AddonDependencyEntry.create("org.jboss.forge.addon:parser-json"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:resources")
-               );
+                        AddonDependencyEntry.create("org.jboss.forge.addon:resources"));
       return archive;
    }
 
@@ -159,5 +157,18 @@ public class JsonTestCase
       Assert.assertNotNull(jsonObject);
       Assert.assertEquals("George", jsonObject.getString("firstName"));
       Assert.assertEquals("Gastaldi", jsonObject.getString("lastName"));
+   }
+
+   // FORGE-2500
+   @Test
+   public void testJsonResourceDataWriteEmptyArrayString() throws Exception
+   {
+      File tmpFile = File.createTempFile("parser_json_test", ".json");
+      tmpFile.deleteOnExit();
+      Resource<File> resource = resourceFactory.create(tmpFile);
+      Assert.assertThat(resource, CoreMatchers.instanceOf(JsonResource.class));
+      JsonResource jsonResource = resource.reify(JsonResource.class);
+      jsonResource.setContents("[]"); // Json.createArrayBuilder().build().toString()
+      Assert.assertTrue(jsonResource.getJsonArray().isEmpty());
    }
 }

@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.parser.java.ui.annotations;
 
 import java.io.FileNotFoundException;
@@ -167,7 +173,8 @@ public class JavaAddAnnotationCommandImpl extends AbstractProjectCommand impleme
       annotation.setCompleter(new UICompleter<String>()
       {
          @Override
-         public Iterable<String> getCompletionProposals(UIContext context, InputComponent<?, String> input, String value)
+         public Iterable<String> getCompletionProposals(UIContext context, InputComponent<?, String> input,
+                  String value)
          {
             Project project = getSelectedProject(builder.getUIContext());
             List<JavaResource> javaClasses = projectOperations.getProjectAnnotations(project);
@@ -190,6 +197,7 @@ public class JavaAddAnnotationCommandImpl extends AbstractProjectCommand impleme
       builder.add(targetClass).add(annotation).add(onProperty).add(onMethod);
    }
 
+   @SuppressWarnings("unchecked")
    @Override
    public Result execute(UIExecutionContext context) throws Exception
    {
@@ -200,7 +208,7 @@ public class JavaAddAnnotationCommandImpl extends AbstractProjectCommand impleme
       if (onProperty.hasValue())
       {
          String propertyName = onProperty.getValue().getUnderlyingResourceObject().getName();
-         AnnotationTargetSource field = javaSource.getField(propertyName);
+         AnnotationTargetSource<JavaClassSource, ?> field = javaSource.getField(propertyName);
 
          addAnnotationToSource(field, annotation.getValue());
 
@@ -209,7 +217,7 @@ public class JavaAddAnnotationCommandImpl extends AbstractProjectCommand impleme
       }
       else if (onMethod.hasValue())
       {
-         List<Parameter> parameters = onMethod.getValue().getUnderlyingResourceObject().getParameters();
+         List<Parameter<?>> parameters = onMethod.getValue().getUnderlyingResourceObject().getParameters();
 
          String[] stringParametersArray = new String[parameters.size()];
 
@@ -219,7 +227,7 @@ public class JavaAddAnnotationCommandImpl extends AbstractProjectCommand impleme
          }
 
          String methodName = onMethod.getValue().getUnderlyingResourceObject().getName();
-         AnnotationTargetSource method = javaSource.getMethod(methodName, stringParametersArray);
+         AnnotationTargetSource<JavaClassSource, ?> method = javaSource.getMethod(methodName, stringParametersArray);
 
          addAnnotationToSource(method, annotation.getValue());
 
@@ -239,7 +247,7 @@ public class JavaAddAnnotationCommandImpl extends AbstractProjectCommand impleme
       return result;
    }
 
-   private void addAnnotationToSource(AnnotationTargetSource targetSource, String annotationStr)
+   private void addAnnotationToSource(AnnotationTargetSource<JavaClassSource, ?> targetSource, String annotationStr)
    {
       String annotationClassName = getAnnotationClassNameFromString(annotationStr);
 
@@ -289,7 +297,8 @@ public class JavaAddAnnotationCommandImpl extends AbstractProjectCommand impleme
       {
          if ("$missing$".equals(valuePair.getLiteralValue()))
          {
-            throw new IllegalArgumentException("Parameter \"" + valuePair.getName() + "\" is missing or is incomplete.");
+            throw new IllegalArgumentException(
+                     "Parameter \"" + valuePair.getName() + "\" is missing or is incomplete.");
          }
          annotationSource.setLiteralValue(valuePair.getName(), valuePair.getLiteralValue());
       }

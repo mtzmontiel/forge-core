@@ -1,21 +1,23 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.database.tools.generate;
 
 import java.net.URL;
 import java.util.Properties;
 
 import org.jboss.forge.addon.database.tools.connections.ConnectionProfile;
-import org.jboss.forge.addon.projects.Project;
-import org.jboss.forge.addon.ui.cdi.CommandScoped;
 
 /**
  * @author <a href="lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@CommandScoped
 public class GenerateEntitiesCommandDescriptor
 {
    private String targetPackage = "";
    private String connectionProfileName = "";
-   private Project selectedProject;
    private ConnectionProfile connectionProfile;
    private URL[] urls;
    private String driverClass;
@@ -39,16 +41,6 @@ public class GenerateEntitiesCommandDescriptor
    public void setConnectionProfileName(String connectionProfileName)
    {
       this.connectionProfileName = connectionProfileName;
-   }
-
-   public Project getSelectedProject()
-   {
-      return selectedProject;
-   }
-
-   public void setSelectedProject(Project selectedProject)
-   {
-      this.selectedProject = selectedProject;
    }
 
    public ConnectionProfile getConnectionProfile()

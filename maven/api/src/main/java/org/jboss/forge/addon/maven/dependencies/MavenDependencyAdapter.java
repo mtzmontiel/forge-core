@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -22,7 +22,10 @@ import org.jboss.forge.addon.resource.FileResource;
  */
 public class MavenDependencyAdapter extends org.apache.maven.model.Dependency implements Dependency
 {
+   private static final FileResourceFactory RESOURCE_FACTORY = new FileResourceFactory();
    private static final long serialVersionUID = -518791785675970540L;
+
+   private FileResource<?> artifact;
 
    public MavenDependencyAdapter(final org.apache.maven.model.Dependency dep)
    {
@@ -61,6 +64,7 @@ public class MavenDependencyAdapter extends org.apache.maven.model.Dependency im
       this.setType(dep.getCoordinate().getPackaging());
       this.setClassifier(dep.getCoordinate().getClassifier());
       this.setSystemPath(dep.getCoordinate().getSystemPath());
+      this.artifact = dep.getArtifact();
       if (dep.isOptional())
       {
          this.setOptional(dep.isOptional());
@@ -78,13 +82,13 @@ public class MavenDependencyAdapter extends org.apache.maven.model.Dependency im
       }
    }
 
+   @SuppressWarnings("unchecked")
    public MavenDependencyAdapter(final org.eclipse.aether.graph.Dependency dep)
    {
       if (dep == null)
       {
          throw new IllegalArgumentException("Dependency must not be null.");
       }
-
       this.setArtifactId(dep.getArtifact().getArtifactId());
       this.setGroupId(dep.getArtifact().getGroupId());
       this.setClassifier("".equals(dep.getArtifact().getClassifier()) ? null : dep.getArtifact().getClassifier());
@@ -96,6 +100,7 @@ public class MavenDependencyAdapter extends org.apache.maven.model.Dependency im
       this.setScope(dep.getScope());
       this.setType(dep.getArtifact().getExtension());
       this.setVersion(dep.getArtifact().getBaseVersion());
+      this.artifact = RESOURCE_FACTORY.create(FileResource.class, dep.getArtifact().getFile());
    }
 
    @Override
@@ -113,7 +118,7 @@ public class MavenDependencyAdapter extends org.apache.maven.model.Dependency im
    @Override
    public FileResource<?> getArtifact() throws DependencyException
    {
-      return null;
+      return artifact;
    }
 
    private void setExclusions(final Collection<org.eclipse.aether.graph.Exclusion> exclusions)

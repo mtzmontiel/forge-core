@@ -1,10 +1,9 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.metadata;
 
 import java.net.URL;
@@ -40,6 +39,12 @@ public interface UICommandMetadata
    String getDescription();
 
    /**
+    * Returns the long description of the corresponding {@Link UICommand}.
+    * This description will be used to document the command within by the Forge Shell using man
+    */
+   String getLongDescription();
+
+   /**
     * Returns the {@link UICategory} of the corresponding {@link UICommand}.
     */
    UICategory getCategory();
@@ -48,5 +53,17 @@ public interface UICommandMetadata
     * Returns the location of the documentation of the corresponding {@link UICommand}. (can be null.)
     */
    URL getDocLocation();
+
+   /**
+    * Returns if this command is discouraged from using, typically because it is dangerous, or because a better
+    * alternative exists
+    */
+   boolean isDeprecated();
+
+   /**
+    * Returns a deprecated message to be displayed when {@link UICommandMetadata#isDeprecated()} returns
+    * <code>true</code>.
+    */
+   String getDeprecatedMessage();
 
 }

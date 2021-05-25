@@ -1,6 +1,10 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.git.ui;
-
-import javax.inject.Inject;
 
 import org.jboss.forge.addon.git.gitignore.resources.GitIgnoreResource;
 import org.jboss.forge.addon.ui.context.UIBuilder;
@@ -8,7 +12,6 @@ import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.util.Metadata;
@@ -16,14 +19,12 @@ import org.jboss.forge.addon.ui.util.Metadata;
 public class GitIgnoreAddPatternCommandImpl extends AbstractGitCommand implements GitIgnoreAddPatternCommand
 {
 
-   @Inject
-   @WithAttributes(label = "Pattern", required = true)
    private UIInput<String> pattern;
 
    @Override
    public UICommandMetadata getMetadata(UIContext context)
    {
-      return Metadata.from(super.getMetadata(context), this.getClass()).name("GITIGNORE: Add pattern")
+      return Metadata.from(super.getMetadata(context), this.getClass()).name("GitIgnore: Add pattern")
                .description("Add pattern to .gitignore");
    }
 
@@ -36,6 +37,8 @@ public class GitIgnoreAddPatternCommandImpl extends AbstractGitCommand implement
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      this.pattern = getInputComponentFactory().createInput("pattern", String.class).setLabel("Pattern")
+               .setRequired(true);
       builder.add(pattern);
    }
 

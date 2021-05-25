@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.resource.transaction.file;
 
 import java.io.Closeable;
@@ -52,7 +51,7 @@ import org.xadisk.filesystem.standalone.StandaloneFileSystemConfiguration;
 
 /**
  * Implementation of the {@link ResourceTransaction} interface for files
- * 
+ *
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
@@ -415,17 +414,24 @@ public class FileResourceTransactionImpl implements ResourceTransaction, FileOpe
    @Override
    public OutputStream createOutputStream(File f) throws IOException
    {
+      return createOutputStream(f, false);
+   }
+
+   @Override
+   public OutputStream createOutputStream(File file, boolean append) throws IOException
+   {
       assertSessionCreated();
       try
       {
          // This is the behavior of append = false in FileOutputStream
-         session.truncateFile(f, 0L);
-         XAFileOutputStream xaStream = session.createXAFileOutputStream(f, false);
+         if (!append)
+            session.truncateFile(file, 0L);
+         XAFileOutputStream xaStream = session.createXAFileOutputStream(file, false);
          return new XAFileOutputStreamWrapper(xaStream);
       }
       catch (Exception e)
       {
-         throw new ResourceTransactionException("Error while creating output stream for " + f, e);
+         throw new ResourceTransactionException("Error while creating output stream for " + file, e);
       }
    }
 
@@ -443,6 +449,21 @@ public class FileResourceTransactionImpl implements ResourceTransaction, FileOpe
       catch (Exception e)
       {
          throw new ResourceTransactionException("Error while creating input stream for " + f, e);
+      }
+   }
+
+   @Override
+   public File move(File src, File dest) throws IOException
+   {
+      assertSessionCreated();
+      try
+      {
+         session.moveFile(src, dest);
+         return dest;
+      }
+      catch (Exception e)
+      {
+         throw new ResourceTransactionException("Error while moving file from " + src + " to " + dest, e);
       }
    }
 
@@ -466,6 +487,49 @@ public class FileResourceTransactionImpl implements ResourceTransaction, FileOpe
    public void deleteFileOnExit(File file)
    {
       file.deleteOnExit();
+   }
+
+   @Override
+   public boolean deleteFile(File file, boolean recursive)
+   {
+      if (recursive)
+      {
+         return this.deleteRecursive(file);
+      }
+      return this.deleteFile(file);
+   }
+
+   private boolean deleteRecursive(File file)
+   {
+      if (OperatingSystemUtils.isWindows())
+      {
+         System.gc(); // ensure no lingering handles that would prevent deletion
+      }
+
+      if (file == null)
+      {
+         return false;
+      }
+
+      File[] children = this.listFiles(file);
+      if (children != null)
+      {
+         for (File sf : children)
+         {
+            if (this.fileExistsAndIsDirectory(sf))
+            {
+               deleteFile(sf, false);
+            }
+            else
+            {
+               if (!this.deleteFile(sf))
+               {
+                  throw new RuntimeException("failed to delete: " + sf.getAbsolutePath());
+               }
+            }
+         }
+      }
+      return this.deleteFile(file);
    }
 
    private void assertSessionCreated()

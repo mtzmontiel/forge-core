@@ -4,7 +4,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>javaee-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
    </parent>
    <artifactId>javaee</artifactId>
    <name>Forge - JavaEE Addon</name>
@@ -17,7 +17,6 @@
          <groupId>org.jboss.forge.addon</groupId>
          <artifactId>javaee-impl</artifactId>
          <scope>runtime</scope>
-         <optional>true</optional>
       </dependency>
       <dependency>
          <groupId>org.jboss.forge.addon</groupId>
@@ -84,22 +83,6 @@
    <build>
       <plugins>
          <plugin>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-maven-plugin</artifactId>
-            <executions>
-               <execution>
-                  <id>generate-dot</id>
-                  <phase>prepare-package</phase>
-                  <goals>
-                     <goal>generate-dot</goal>
-                  </goals>
-                  <configuration>
-                     <attach>true</attach>
-                  </configuration>
-               </execution>
-            </executions>
-         </plugin>
-         <plugin>
             <artifactId>maven-jar-plugin</artifactId>
             <executions>
                <execution>
@@ -116,4 +99,29 @@
          </plugin>
       </plugins>
    </build>
+   <profiles>
+      <profile>
+         <id>release</id>
+         <build>
+            <plugins>
+               <plugin>
+                  <groupId>org.jboss.forge.furnace</groupId>
+                  <artifactId>furnace-maven-plugin</artifactId>
+                  <executions>
+                     <execution>
+                        <id>generate-dot</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                           <goal>generate-dot</goal>
+                        </goals>
+                        <configuration>
+                           <attach>true</attach>
+                        </configuration>
+                     </execution>
+                  </executions>
+               </plugin>
+            </plugins>
+         </build>
+      </profile>
+   </profiles>
 </project>

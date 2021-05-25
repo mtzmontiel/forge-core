@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -30,6 +30,7 @@ public class MavenProjectBuilder implements ProjectBuilder
 
    private boolean runTests = true;
    private boolean quiet;
+   private final List<String> profiles = new ArrayList<>();
    private final List<String> args = new ArrayList<>();
 
    public MavenProjectBuilder(final Environment environment, final Project project)
@@ -60,6 +61,14 @@ public class MavenProjectBuilder implements ProjectBuilder
    }
 
    @Override
+   public ProjectBuilder profiles(String... profiles)
+   {
+      this.profiles.clear();
+      this.profiles.addAll(Arrays.asList(profiles));
+      return this;
+   }
+
+   @Override
    public Resource<?> build()
    {
       return build(System.out, System.err);
@@ -69,12 +78,15 @@ public class MavenProjectBuilder implements ProjectBuilder
    public Resource<?> build(PrintStream out, PrintStream err) throws BuildException
    {
       List<String> selected = new ArrayList<>();
-      selected.addAll(Arrays.asList("clean", "package"));
 
       if ((args != null) && (!args.isEmpty()))
       {
-         selected.clear();
          selected.addAll(args);
+      }
+      else
+      {
+         selected.add("clean");
+         selected.add("install");
       }
 
       if (Network.isOffline(environment))
@@ -91,7 +103,11 @@ public class MavenProjectBuilder implements ProjectBuilder
       {
          selected.add("-q");
       }
-      boolean success = project.getFacet(MavenFacet.class).executeMavenEmbedded(selected, out, err);
+      if (profiles.size() > 0)
+      {
+         selected.add("-P" + String.join(",", profiles));
+      }
+      boolean success = project.getFacet(MavenFacet.class).executeMaven(selected, out, err);
 
       if (success)
       {

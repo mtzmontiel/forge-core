@@ -17,14 +17,15 @@ DESCRIPTION
 -----------
 %options%
 
+
 FROM ADDON
-------
+----------
 %addon%
 
 
 RESOURCES
 ---------
-forge: <http://forge.jboss.org/>
+JBoss Forge: <https://forge.jboss.org/>
 
 
 COPYING

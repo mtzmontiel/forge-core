@@ -1,9 +1,15 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.facets;
-
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -54,6 +60,12 @@ public abstract class AbstractFaceted<FACETTYPE extends Facet<?>> implements Mut
       {
          return facet;
       }
+   }
+
+   @Override
+   public <F extends FACETTYPE> Optional<F> getFacetAsOptional(Class<F> type)
+   {
+      return Optional.<F> ofNullable(safeGetFacet(type));
    }
 
    @Override
@@ -142,8 +154,7 @@ public abstract class AbstractFaceted<FACETTYPE extends Facet<?>> implements Mut
    @Override
    public boolean uninstall(FACETTYPE facet)
    {
-      return facet.isInstalled() ?
-               (facet.uninstall() && facets.remove(facet))
+      return facet.isInstalled() ? (facet.uninstall() && facets.remove(facet))
                : (!facets.contains(facet) || facets.remove(facet));
    }
 

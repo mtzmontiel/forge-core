@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.jpa;
 
 import java.io.File;
@@ -15,6 +14,7 @@ import java.util.List;
 import javax.persistence.Entity;
 
 import org.jboss.forge.addon.javaee.AbstractJavaEEFacet;
+import org.jboss.forge.addon.javaee.JavaEEPackageConstants;
 import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
 import org.jboss.forge.addon.parser.java.resources.JavaResource;
 import org.jboss.forge.addon.parser.java.resources.JavaResourceVisitor;
@@ -36,11 +36,15 @@ public abstract class AbstractJPAFacetImpl<DESCRIPTOR extends PersistenceCommonD
          implements JPAFacet<DESCRIPTOR>
 {
 
-   public static final String DEFAULT_ENTITY_PACKAGE = "model";
-
    public AbstractJPAFacetImpl(DependencyInstaller installer)
    {
       super(installer);
+   }
+
+   @Override
+   public String getSpecName()
+   {
+      return "JPA";
    }
 
    @Override
@@ -60,7 +64,12 @@ public abstract class AbstractJPAFacetImpl<DESCRIPTOR extends PersistenceCommonD
    @Override
    public boolean isInstalled()
    {
-      return super.isInstalled() && getConfigFile().exists();
+      FileResource<?> configFile = getConfigFile();
+      if (!configFile.exists())
+      {
+         return false;
+      }
+      return getSpecVersion().toString().equals(getConfig().getVersion());
    }
 
    /*
@@ -71,7 +80,7 @@ public abstract class AbstractJPAFacetImpl<DESCRIPTOR extends PersistenceCommonD
    public String getEntityPackage()
    {
       JavaSourceFacet sourceFacet = getFaceted().getFacet(JavaSourceFacet.class);
-      return sourceFacet.getBasePackage() + "." + DEFAULT_ENTITY_PACKAGE;
+      return sourceFacet.getBasePackage() + "." + JavaEEPackageConstants.DEFAULT_ENTITY_PACKAGE;
    }
 
    @Override
@@ -79,7 +88,8 @@ public abstract class AbstractJPAFacetImpl<DESCRIPTOR extends PersistenceCommonD
    {
       JavaSourceFacet sourceFacet = getFaceted().getFacet(JavaSourceFacet.class);
 
-      DirectoryResource entityRoot = sourceFacet.getBasePackageDirectory().getChildDirectory(DEFAULT_ENTITY_PACKAGE);
+      DirectoryResource entityRoot = sourceFacet.getBasePackageDirectory().getChildDirectory(
+               JavaEEPackageConstants.DEFAULT_ENTITY_PACKAGE);
       if (!entityRoot.exists())
       {
          entityRoot.mkdirs();

@@ -1,34 +1,32 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.faces;
 
-import javax.inject.Inject;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import org.jboss.arquillian.container.test.api.Deployment;
+import javax.faces.convert.Converter;
+import javax.faces.convert.FacesConverter;
+import javax.faces.validator.FacesValidator;
+import javax.faces.validator.Validator;
+import javax.inject.Inject;
+import javax.inject.Named;
+
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.facets.FacetFactory;
+import org.jboss.forge.addon.javaee.cdi.ui.BeanScope;
 import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
 import org.jboss.forge.addon.parser.java.resources.JavaResource;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.facets.ResourcesFacet;
-import org.jboss.forge.addon.resource.DirectoryResource;
-import org.jboss.forge.addon.resource.Resource;
-import org.jboss.forge.addon.resource.ResourceFactory;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
-import org.jboss.forge.furnace.util.OperatingSystemUtils;
 import org.jboss.forge.roaster.Roaster;
 import org.jboss.forge.roaster.model.source.JavaClassSource;
 import org.jboss.forge.roaster.model.source.MethodSource;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,27 +38,8 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class FacesOperationsTest
 {
-   @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:javaee"),
-            @AddonDependency(name = "org.jboss.forge.addon:maven")
-   })
-   public static ForgeArchive getDeployment()
-   {
-      return ShrinkWrap.create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:javaee")
-               );
-   }
-
    @Inject
    private ProjectFactory projectFactory;
-
-   @Inject
-   private ResourceFactory resourceFactory;
 
    @Inject
    private FacetFactory facetFactory;
@@ -69,95 +48,33 @@ public class FacesOperationsTest
    private FacesOperations operations;
 
    @Test
-   public void testCreateBackingBeanInDirectory() throws Exception
+   public void testCreateBackingBean() throws Exception
    {
-      DirectoryResource dir = (DirectoryResource) resourceFactory.create(OperatingSystemUtils.createTempDir());
-      JavaResource bean = operations.newConverter(dir, "SampleBean", "org.example");
-
-      Assert.assertEquals("SampleBean.java", bean.getName());
-      Assert.assertEquals("SampleBean", bean.getJavaType().getName());
-      Assert.assertEquals("org.example", bean.getJavaType().getPackage());
-      Assert.assertTrue(bean.exists());
-   }
-
-   @SuppressWarnings("deprecation")
-   @Test
-   public void testCreateBackingBeanInProject() throws Exception
-   {
-      Project project = projectFactory.createTempProject();
-      facetFactory.install(project, ResourcesFacet.class);
-      facetFactory.install(project, JavaSourceFacet.class);
-
-      JavaResource bean = operations.newConverter(project, "SampleBean", "org.example");
-      Assert.assertTrue(bean.exists());
-
-      Assert.assertEquals("SampleBean.java", bean.getName());
-      Resource<?> child = project.getRootDirectory().getChild("src/main/java/org/example/SampleBean.java");
-      Assert.assertTrue(child.exists());
-      Assert.assertTrue(child instanceof JavaResource);
-      Assert.assertEquals("SampleBean", ((JavaResource) child).getJavaType().getName());
-      Assert.assertEquals("org.example", ((JavaResource) child).getJavaType().getPackage());
+      JavaClassSource source = Roaster.create(JavaClassSource.class);
+      source = operations.newBackingBean(source, BeanScope.DEPENDENT);
+      Assert.assertTrue(source.hasAnnotation(Named.class));
    }
 
    @Test
-   public void testCreateConverterInDirectory() throws Exception
+   public void testCreateConverter() throws Exception
    {
-      DirectoryResource dir = (DirectoryResource) resourceFactory.create(OperatingSystemUtils.createTempDir());
-      JavaResource converter = operations.newConverter(dir, "SampleConverter", "org.example");
-
-      Assert.assertEquals("SampleConverter.java", converter.getName());
-      Assert.assertEquals("SampleConverter", converter.getJavaType().getName());
-      Assert.assertEquals("org.example", converter.getJavaType().getPackage());
-      Assert.assertTrue(converter.exists());
-   }
-
-   @SuppressWarnings("deprecation")
-   @Test
-   public void testCreateConverterInProject() throws Exception
-   {
-      Project project = projectFactory.createTempProject();
-      facetFactory.install(project, ResourcesFacet.class);
-      facetFactory.install(project, JavaSourceFacet.class);
-
-      JavaResource converter = operations.newConverter(project, "SampleConverter", "org.example");
-      Assert.assertTrue(converter.exists());
-
-      Assert.assertEquals("SampleConverter.java", converter.getName());
-      Resource<?> child = project.getRootDirectory().getChild("src/main/java/org/example/SampleConverter.java");
-      Assert.assertTrue(child.exists());
-      Assert.assertTrue(child instanceof JavaResource);
-      Assert.assertEquals("SampleConverter", ((JavaResource) child).getJavaType().getName());
-      Assert.assertEquals("org.example", ((JavaResource) child).getJavaType().getPackage());
+      JavaClassSource source = Roaster.create(JavaClassSource.class);
+      source = operations.newConverter(source);
+      assertTrue(source.hasAnnotation(FacesConverter.class));
+      assertTrue(source.hasInterface(Converter.class));
+      assertEquals(0, source.getFields().size());
+      assertEquals(2, source.getMethods().size());
    }
 
    @Test
-   public void testCreateValidatorInDirectory() throws Exception
+   public void testCreateValidator() throws Exception
    {
-      DirectoryResource dir = (DirectoryResource) resourceFactory.create(OperatingSystemUtils.createTempDir());
-      JavaResource validator = operations.newValidator(dir, "SampleValidator", "org.example");
-
-      Assert.assertEquals("SampleValidator.java", validator.getName());
-      Assert.assertEquals("SampleValidator", validator.getJavaType().getName());
-      Assert.assertEquals("org.example", validator.getJavaType().getPackage());
-      Assert.assertTrue(validator.exists());
-   }
-
-   @Test
-   public void testCreateValidatorInProject() throws Exception
-   {
-      Project project = projectFactory.createTempProject();
-      facetFactory.install(project, ResourcesFacet.class);
-      facetFactory.install(project, JavaSourceFacet.class);
-
-      JavaResource validator = operations.newValidator(project, "SampleValidator", "org.example");
-      Assert.assertTrue(validator.exists());
-
-      Assert.assertEquals("SampleValidator.java", validator.getName());
-      Resource<?> child = project.getRoot().getChild("src/main/java/org/example/SampleValidator.java");
-      Assert.assertTrue(child.exists());
-      Assert.assertTrue(child instanceof JavaResource);
-      Assert.assertEquals("SampleValidator", ((JavaResource) child).getJavaType().getName());
-      Assert.assertEquals("org.example", ((JavaResource) child).getJavaType().getPackage());
+      JavaClassSource source = Roaster.create(JavaClassSource.class);
+      source = operations.newValidator(source, "name", "package");
+      assertTrue(source.hasAnnotation(FacesValidator.class));
+      assertTrue(source.hasInterface(Validator.class));
+      assertEquals(0, source.getFields().size());
+      assertEquals(1, source.getMethods().size());
    }
 
    @Test
@@ -178,5 +95,4 @@ public class FacesOperationsTest
       Assert.assertEquals(1, source.getMethods().size());
       Assert.assertEquals(method.toSignature(), source.getMethods().get(0).toSignature());
    }
-
 }

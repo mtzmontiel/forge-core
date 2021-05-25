@@ -1,19 +1,18 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.jpa;
 
-import org.jboss.forge.addon.parser.java.resources.JavaResource;
-import org.jboss.forge.addon.projects.Project;
+import java.io.FileNotFoundException;
 
 import javax.persistence.CascadeType;
 import javax.persistence.FetchType;
 
-import java.io.FileNotFoundException;
+import org.jboss.forge.addon.parser.java.resources.JavaResource;
+import org.jboss.forge.addon.projects.Project;
 
 /**
  * Interface for JPA-oriented field operations.
@@ -56,9 +55,9 @@ public interface JPAFieldOperations
             Iterable<CascadeType> cascadeTypes) throws FileNotFoundException;
 
    void newEmbeddedRelationship(
-            Project project, 
-            JavaResource resource, 
-            String fieldName, 
+            Project project,
+            JavaResource resource,
+            String fieldName,
             String fieldType)
             throws FileNotFoundException;
 }

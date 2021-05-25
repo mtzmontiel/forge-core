@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.validation.ui;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
@@ -23,12 +22,11 @@ import javax.validation.Constraint;
 import javax.validation.Payload;
 import javax.validation.ReportAsSingleViolation;
 
-import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
-import org.jboss.forge.addon.parser.java.ui.AbstractJavaSourceCommand;
+import org.jboss.forge.addon.javaee.validation.ValidationFacet;
 import org.jboss.forge.addon.projects.Project;
+import org.jboss.forge.addon.projects.stacks.annotations.StackConstraint;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
-import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
 import org.jboss.forge.roaster.model.source.JavaAnnotationSource;
 
@@ -37,7 +35,8 @@ import org.jboss.forge.roaster.model.source.JavaAnnotationSource;
  *
  * @author <a href="antonio.goncalves@gmail.com">Antonio Goncalves</a>
  */
-public class ValidationNewAnnotationCommandImpl extends AbstractJavaSourceCommand<JavaAnnotationSource> implements
+@StackConstraint(ValidationFacet.class)
+public class ValidationNewAnnotationCommandImpl extends AbstractValidationCommand<JavaAnnotationSource> implements
          ValidationNewAnnotationCommand
 {
    @Override
@@ -45,20 +44,13 @@ public class ValidationNewAnnotationCommandImpl extends AbstractJavaSourceComman
    {
       return Metadata.from(super.getMetadata(context), getClass())
                .name("Constraint: New Annotation")
-               .description("Create a Bean Validation constraint annotation")
-               .category(Categories.create(super.getMetadata(context).getCategory(), "Bean Validation"));
+               .description("Create a Bean Validation constraint annotation");
    }
 
    @Override
    protected String getType()
    {
-      return "Bean Validation Constraint Annotations";
-   }
-
-   @Override
-   protected boolean isProjectRequired()
-   {
-      return true;
+      return "Constraint Annotation";
    }
 
    @Override
@@ -68,15 +60,9 @@ public class ValidationNewAnnotationCommandImpl extends AbstractJavaSourceComman
    }
 
    @Override
-   protected String calculateDefaultPackage(UIContext context)
-   {
-      return getSelectedProject(context).getFacet(JavaSourceFacet.class).getBasePackage() + ".constraints";
-   }
-
-   @Override
    public JavaAnnotationSource decorateSource(UIExecutionContext context, Project project,
             JavaAnnotationSource constraint)
-            throws Exception
+                     throws Exception
    {
       // Constraint annotation header
       constraint.addAnnotation(Constraint.class).setLiteralValue("validatedBy", "{}");

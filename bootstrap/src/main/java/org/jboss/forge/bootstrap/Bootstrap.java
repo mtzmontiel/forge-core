@@ -1,10 +1,9 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.bootstrap;
 
 import java.io.BufferedReader;
@@ -24,7 +23,7 @@ import org.jboss.forge.furnace.addons.AddonId;
 import org.jboss.forge.furnace.impl.addons.AddonRepositoryImpl;
 import org.jboss.forge.furnace.manager.impl.AddonManagerImpl;
 import org.jboss.forge.furnace.manager.maven.addon.MavenAddonDependencyResolver;
-import org.jboss.forge.furnace.manager.request.AddonActionRequest;
+import org.jboss.forge.furnace.manager.request.InstallRequest;
 import org.jboss.forge.furnace.manager.request.RemoveRequest;
 import org.jboss.forge.furnace.manager.spi.AddonDependencyResolver;
 import org.jboss.forge.furnace.repositories.AddonRepository;
@@ -102,7 +101,7 @@ public class Bootstrap
       String installAddon = null;
       String removeAddon = null;
       furnace = ServiceLoader.load(Furnace.class).iterator().next();
-
+      boolean showHelp = false;
       furnace.setArgs(args);
 
       if (args.length > 0)
@@ -110,13 +109,16 @@ public class Bootstrap
          List<String> listArgs = Arrays.asList(args);
          if (listArgs.contains("--help") || listArgs.contains("-h"))
          {
-            System.out.println(help());
+            showHelp = true;
             exitAfter = true;
-            return;
          }
          for (int i = 0; i < args.length; i++)
          {
-            if ("--install".equals(args[i]) || "-i".equals(args[i]))
+            if ("--help".equals(args[i]) || "-h".equals(args[i]))
+            {
+               exitAfter = true;
+            }
+            else if ("--install".equals(args[i]) || "-i".equals(args[i]))
             {
                installAddon = args[++i];
             }
@@ -154,7 +156,7 @@ public class Bootstrap
             }
             else if ("--version".equals(args[i]) || "-v".equals(args[i]))
             {
-               System.out.println("Forge version " + AddonRepositoryImpl.getRuntimeAPIVersion());
+               System.out.println("Forge version " + Versions.getImplementationVersionFor(getClass()));
                exitAfter = true;
             }
             else
@@ -169,6 +171,11 @@ public class Bootstrap
       if (!containsMutableRepository(furnace.getRepositories()))
       {
          furnace.addRepository(AddonRepositoryMode.MUTABLE, new File(OperatingSystemUtils.getUserForgeDir(), "addons"));
+      }
+      if (showHelp)
+      {
+         System.out.println(help());
+         return;
       }
       if (listInstalled)
       {
@@ -191,10 +198,12 @@ public class Bootstrap
       sb.append("The fastest way to build applications, share your software, and enjoy doing it. \n");
       sb.append("\n");
       sb.append("-i, --install [[groupId:]addon[,version]]\n");
-      sb.append("\t install the required addons and exit. ex: `forge -i core-addon-x` or `forge -i org.example.addon:example,1.0.0` \n");
+      sb.append(
+               "\t install the required addons and exit. ex: `forge -i core-addon-x` or `forge -i org.example.addon:example,1.0.0` \n");
 
       sb.append("-r, --remove [[groupId:]addon[,version]]\n");
-      sb.append("\t remove the required addons and exit. ex: `forge -r core-addon-x` or `forge -r org.example.addon:example,1.0.0` \n");
+      sb.append(
+               "\t remove the required addons and exit. ex: `forge -r core-addon-x` or `forge -r org.example.addon:example,1.0.0` \n");
 
       sb.append("-l, --list\n");
       sb.append("\t list installed addons and exit \n");
@@ -203,7 +212,12 @@ public class Bootstrap
       sb.append("\t add the given directory for use as a custom addon repository \n");
 
       sb.append("-e, --evaluate [cmd]\n");
-      sb.append("\t evaluate the given string as commands (requires shell addon. Install via: `forge -i shell`) \n");
+      sb.append("\t evaluate the given string as commands ")
+               .append(!containsAddon("org.jboss.forge.addon:script")
+                        ? "(requires the script addon. Install via: `forge -i script`)" : "")
+               .append("\n")
+               .append("\t make sure to use double quotes if your command has arguments (eg. ./forge -e \"run script.fsh\")")
+               .append("\n");
 
       sb.append("-m, --immutableAddonDir [dir]\n");
       sb.append("\t add the given directory for use as a custom immutable addon repository (read only) \n");
@@ -220,6 +234,16 @@ public class Bootstrap
       sb.append("-v, --version\n");
       sb.append("\t output version information and exit \n");
       return sb.toString();
+   }
+
+   private boolean containsAddon(String name)
+   {
+      boolean result = false;
+      for (AddonRepository repo : furnace.getRepositories())
+      {
+         result |= repo.listAll().stream().anyMatch(id -> name.equals(id.getName()));
+      }
+      return result;
    }
 
    private boolean containsMutableRepository(List<AddonRepository> repositories)
@@ -243,7 +267,7 @@ public class Bootstrap
          for (AddonRepository repository : furnace.getRepositories())
          {
             System.out.println(repository.getRootDirectory().getCanonicalPath() + ":");
-            List<AddonId> addons = repository.listEnabled();
+            List<AddonId> addons = repository.listAll();
             for (AddonId addon : addons)
             {
                System.out.println(addon.toCoordinates());
@@ -282,7 +306,7 @@ public class Bootstrap
             if (addonIds.isEmpty())
             {
                String result = System.console().readLine(
-                        "There are no addons installed; install core addons now? [Y,n] ");
+                        "There are no addons installed/enabled; install core addons now? [Y,n] ");
                if (!"n".equalsIgnoreCase(result.trim()))
                {
                   install("core");
@@ -341,34 +365,38 @@ public class Bootstrap
                {
                   String apiVersion = resolver.resolveAPIVersion(versions[i]).get();
                   if (apiVersion != null
-                           && Versions.isApiCompatible(runtimeAPIVersion, new SingleVersion(apiVersion)))
+                           && Versions.isApiCompatible(runtimeAPIVersion, SingleVersion.valueOf(apiVersion)))
                   {
                      selected = versions[i];
                   }
                }
                if (selected == null)
                {
-                  throw new IllegalArgumentException("No compatible addon API version found for " + coordinate
-                           + " for API " + runtimeAPIVersion);
+                  addon = versions[0];
                }
-
-               addon = selected;
+               else
+               {
+                  addon = selected;
+               }
             }
          }
 
-         AddonActionRequest request = addonManager.install(addon);
+         InstallRequest request = addonManager.install(addon);
          System.out.println(request);
-         if (!batchMode)
+         if (request.getActions().size() > 0)
          {
-            String result = System.console().readLine("Confirm installation [Y/n]? ");
-            if ("n".equalsIgnoreCase(result.trim()))
+            if (!batchMode)
             {
-               System.out.println("Installation aborted.");
-               return;
+               String result = System.console().readLine("Confirm installation [Y/n]? ");
+               if ("n".equalsIgnoreCase(result.trim()))
+               {
+                  System.out.println("Installation aborted.");
+                  return;
+               }
             }
+            request.perform();
+            System.out.println("Installation completed successfully.");
          }
-         request.perform();
-         System.out.println("Installation completed successfully.");
          System.out.println();
       }
       catch (Exception e)
@@ -416,7 +444,7 @@ public class Bootstrap
          }
          REPOS: for (AddonRepository repository : furnace.getRepositories())
          {
-            for (AddonId id : repository.listEnabled())
+            for (AddonId id : repository.listAll())
             {
                if (coordinates.equals(id.getName()))
                {

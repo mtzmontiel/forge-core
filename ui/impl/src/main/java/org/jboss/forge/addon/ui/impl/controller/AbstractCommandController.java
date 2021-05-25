@@ -1,12 +1,12 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.controller;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -22,6 +22,7 @@ import org.jboss.forge.addon.ui.impl.context.UIValidationContextImpl;
 import org.jboss.forge.addon.ui.input.InputComponent;
 import org.jboss.forge.addon.ui.output.UIMessage;
 import org.jboss.forge.addon.ui.result.Result;
+import org.jboss.forge.addon.ui.validate.UIValidationListener;
 import org.jboss.forge.furnace.addons.AddonRegistry;
 import org.jboss.forge.furnace.util.Assert;
 
@@ -51,12 +52,14 @@ public abstract class AbstractCommandController implements CommandController
 
    protected void assertInitialized()
    {
-      Assert.isTrue(isInitialized(), "Controller must be initialized.");
+      if (!isInitialized())
+         throw new IllegalStateException("Controller must be initialized.");
    }
 
    protected void assertValid()
    {
-      Assert.isTrue(isValid(), "Controller is not in valid state.");
+      if (!isValid())
+         throw new IllegalStateException("Controller is not in valid state: " + validate());
    }
 
    @Override
@@ -66,7 +69,17 @@ public abstract class AbstractCommandController implements CommandController
       Assert.notNull(input, "InputComponent must not be null.");
       Assert.isTrue(getInputs().values().contains(input), "InputComponent must belong to this command.");
       UIValidationContextImpl validationContext = new UIValidationContextImpl(context);
+      validationContext.setCurrentInputComponent(input);
+      // Notify validator listeners
+      for (UIValidationListener validator : addonRegistry.getServices(UIValidationListener.class))
+      {
+         validator.preValidate(validationContext, getCommand(), Collections.<InputComponent<?, ?>> singleton(input));
+      }
       input.validate(validationContext);
+      for (UIValidationListener validator : addonRegistry.getServices(UIValidationListener.class))
+      {
+         validator.postValidate(validationContext, getCommand(), Collections.<InputComponent<?, ?>> singleton(input));
+      }
       return validationContext.getMessages();
    }
 
@@ -119,7 +132,7 @@ public abstract class AbstractCommandController implements CommandController
    }
 
    protected void firePostCommandFailure(UIExecutionContext executionContext,
-            Set<CommandExecutionListener> listeners, UICommand command, Exception e)
+            Set<CommandExecutionListener> listeners, UICommand command, Throwable e)
    {
       for (CommandExecutionListener listener : listeners)
       {

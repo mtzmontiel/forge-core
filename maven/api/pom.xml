@@ -3,7 +3,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>maven-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
    </parent>
    <artifactId>maven-api</artifactId>
    <name>Forge - Maven API</name>
@@ -11,7 +11,8 @@
    <dependencies>
       <dependency>
          <groupId>org.jboss.forge.furnace.container</groupId>
-         <artifactId>cdi-api</artifactId>
+         <artifactId>simple</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
       <dependency>
@@ -57,6 +58,10 @@
                <groupId>org.jboss.forge</groupId>
                <artifactId>xml-parser</artifactId>
             </exclusion>
+            <exclusion>
+               <groupId>org.slf4j</groupId>
+               <artifactId>slf4j-api</artifactId>
+            </exclusion>
          </exclusions>
       </dependency>
       <dependency>
@@ -67,7 +72,7 @@
       <dependency>
          <groupId>org.apache.maven.archetype</groupId>
          <artifactId>archetype-catalog</artifactId>
-         <version>2.2</version>
+         <version>${version.maven.archetypes}</version>
       </dependency>
    </dependencies>
 </project>

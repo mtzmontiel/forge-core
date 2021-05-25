@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -9,8 +9,6 @@ package org.jboss.forge.addon.maven.projects.facets;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.enterprise.context.Dependent;
 
 import org.apache.maven.model.Build;
 import org.jboss.forge.addon.facets.AbstractFacet;
@@ -31,9 +29,8 @@ import org.jboss.forge.addon.resource.visit.ResourceVisitor;
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  * @author <a href="mailto:ggastald@redhat.com">George Gastaldi</a>
  */
-@Dependent
 @FacetConstraint(MavenFacet.class)
-public class MavenResourcesFacet extends AbstractFacet<Project> implements ResourcesFacet
+public class MavenResourcesFacet extends AbstractFacet<Project>implements ResourcesFacet
 {
    @Override
    public List<DirectoryResource> getResourceDirectories()
@@ -58,7 +55,7 @@ public class MavenResourcesFacet extends AbstractFacet<Project> implements Resou
       {
          resFolderName = "src" + File.separator + "main" + File.separator + "resources";
       }
-      DirectoryResource projectRoot = getFaceted().getRootDirectory();
+      DirectoryResource projectRoot = getFaceted().getRoot().reify(DirectoryResource.class);
       return projectRoot.getChildDirectory(resFolderName);
    }
 
@@ -77,7 +74,7 @@ public class MavenResourcesFacet extends AbstractFacet<Project> implements Resou
       {
          resFolderName = "src" + File.separator + "test" + File.separator + "resources";
       }
-      DirectoryResource projectRoot = getFaceted().getRootDirectory();
+      DirectoryResource projectRoot = getFaceted().getRoot().reify(DirectoryResource.class);
       return projectRoot.getChildDirectory(resFolderName);
    }
 

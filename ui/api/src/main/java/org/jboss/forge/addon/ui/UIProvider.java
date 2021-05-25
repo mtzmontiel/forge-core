@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.ui;
 
 import org.jboss.forge.addon.ui.output.UIOutput;
@@ -13,12 +19,28 @@ import org.jboss.forge.addon.ui.output.UIOutput;
 public interface UIProvider
 {
    /**
-    * Returns true if this {@link UIProvider} is running a Graphical User Interface.
+    * @return a human-friendly name of this {@link UIProvider}
+    */
+   String getName();
+
+   /**
+    * @return <code>true</code> if this {@link UIProvider} is running a Graphical User Interface.
     */
    boolean isGUI();
 
    /**
-    * Returns the output object used to display messages during a UI interaction
+    * @return <code>true</code> if this {@link UIProvider} is being executed in an embedded environment (eg: as a Shell
+    *         in IDE or as part of an application)
+    */
+   boolean isEmbedded();
+
+   /**
+    * @return the {@link UIOutput} used to display messages during a UI interaction
     */
    UIOutput getOutput();
+
+   /**
+    * @return the {@link UIDesktop} associated with this {@link UIProvider}.
+    */
+   UIDesktop getDesktop();
 }

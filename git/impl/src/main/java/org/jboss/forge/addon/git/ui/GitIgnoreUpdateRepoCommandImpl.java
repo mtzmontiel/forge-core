@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.git.ui;
 
 import java.io.IOException;
@@ -20,7 +26,7 @@ public class GitIgnoreUpdateRepoCommandImpl extends AbstractGitCommand implement
    @Override
    public UICommandMetadata getMetadata(UIContext context)
    {
-      return Metadata.from(super.getMetadata(context), this.getClass()).name("GITIGNORE: Update templates")
+      return Metadata.from(super.getMetadata(context), this.getClass()).name("GitIgnore: Update templates")
                .description("Update the local .gitignore template repository");
    }
 

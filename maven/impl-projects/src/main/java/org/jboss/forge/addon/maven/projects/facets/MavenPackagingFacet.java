@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -7,16 +7,9 @@
 package org.jboss.forge.addon.maven.projects.facets;
 
 import java.io.File;
-import java.util.Collections;
-
-import javax.enterprise.context.Dependent;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
 
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
-import org.apache.maven.project.ProjectBuildingException;
-import org.apache.maven.project.ProjectBuildingResult;
 import org.jboss.forge.addon.environment.Environment;
 import org.jboss.forge.addon.facets.AbstractFacet;
 import org.jboss.forge.addon.facets.constraints.FacetConstraint;
@@ -24,32 +17,22 @@ import org.jboss.forge.addon.maven.projects.MavenFacet;
 import org.jboss.forge.addon.maven.projects.MavenFacetImpl;
 import org.jboss.forge.addon.maven.projects.MavenProjectBuilder;
 import org.jboss.forge.addon.projects.Project;
-import org.jboss.forge.addon.projects.building.BuildMessage.Severity;
 import org.jboss.forge.addon.projects.building.BuildResult;
-import org.jboss.forge.addon.projects.building.BuildResultBuilder;
 import org.jboss.forge.addon.projects.building.ProjectBuilder;
 import org.jboss.forge.addon.projects.events.PackagingChanged;
 import org.jboss.forge.addon.projects.facets.PackagingFacet;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
+import org.jboss.forge.furnace.addons.Addon;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.util.Strings;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@Dependent
 @FacetConstraint(MavenFacet.class)
 public class MavenPackagingFacet extends AbstractFacet<Project> implements PackagingFacet
 {
-   @Inject
-   private Event<PackagingChanged> event;
-
-   @Inject
-   private ResourceFactory factory;
-
-   @Inject
-   private Environment environment;
-
    @Override
    public void setPackagingType(final String type)
    {
@@ -61,8 +44,8 @@ public class MavenPackagingFacet extends AbstractFacet<Project> implements Packa
          Model pom = mavenFacet.getModel();
          pom.setPackaging(type);
          mavenFacet.setModel(pom);
-
-         event.fire(new PackagingChanged(getFaceted(), oldType, type));
+         Addon addon = SimpleContainer.getAddon(getClass().getClassLoader());
+         addon.getEventManager().fireEvent(new PackagingChanged(getFaceted(), oldType, type));
       }
    }
 
@@ -98,11 +81,11 @@ public class MavenPackagingFacet extends AbstractFacet<Project> implements Packa
    @Override
    public Resource<?> getFinalArtifact()
    {
-      MavenFacetImpl mvn = getFaceted().getFacet(MavenFacetImpl.class);
+      MavenFacet mvn = getFaceted().getFacet(MavenFacet.class);
 
       try
       {
-         Build build = mvn.getProjectBuildingResult().getProject().getBuild();
+         Build build = mvn.getEffectiveModel().getBuild();
          String directory = build.getDirectory();
          String finalName = build.getFinalName();
 
@@ -114,7 +97,9 @@ public class MavenPackagingFacet extends AbstractFacet<Project> implements Packa
          {
             throw new IllegalStateException("Project final artifact name is not configured");
          }
-         return factory.create(new File(directory.trim(), finalName + "."
+         ResourceFactory resourceFactory = SimpleContainer
+                  .getServices(getClass().getClassLoader(), ResourceFactory.class).get();
+         return resourceFactory.create(new File(directory.trim(), finalName + "."
                   + getPackagingType().toLowerCase()));
       }
       catch (Exception e)
@@ -133,6 +118,7 @@ public class MavenPackagingFacet extends AbstractFacet<Project> implements Packa
    @Override
    public ProjectBuilder createBuilder()
    {
+      Environment environment = SimpleContainer.getServices(getClass().getClassLoader(), Environment.class).get();
       return new MavenProjectBuilder(environment, getFaceted());
    }
 
@@ -176,22 +162,7 @@ public class MavenPackagingFacet extends AbstractFacet<Project> implements Packa
    @Override
    public BuildResult getBuildResult()
    {
-      BuildResultBuilder resultBuilder = BuildResultBuilder.create();
       MavenFacetImpl mvn = getFaceted().getFacet(MavenFacetImpl.class);
-      resultBuilder.status(mvn.isModelValid());
-      try
-      {
-         ProjectBuildingResult result = mvn.getProjectBuildingResult();
-         if (!result.getProblems().isEmpty())
-         {
-            String errorMessage = new ProjectBuildingException(Collections.singletonList(result)).getMessage();
-            resultBuilder.addMessage(Severity.ERROR, errorMessage);
-         }
-      }
-      catch (ProjectBuildingException e)
-      {
-         resultBuilder.addMessage(Severity.ERROR, e.getMessage());
-      }
-      return resultBuilder.build();
+      return mvn.getEffectiveModelBuildResult();
    }
 }

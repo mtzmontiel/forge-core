@@ -3,7 +3,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>addon-manager-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
    </parent>
    <artifactId>addon-manager-spi</artifactId>
    <name>Forge - Addon Manager SPI</name>
@@ -15,7 +15,7 @@
       <!-- Furnace Container -->
       <dependency>
          <groupId>org.jboss.forge.furnace.container</groupId>
-         <artifactId>cdi</artifactId>
+         <artifactId>simple</artifactId>
          <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>

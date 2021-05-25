@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright 2016 Red Hat, Inc. and/or its affiliates.
+
+    Licensed under the Eclipse Public License version 1.0, available at
+    http://www.eclipse.org/legal/epl-v10.html
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+
+   <groupId>org.example</groupId>
+   <artifactId>myartifactid</artifactId>
+   <name>Forge - Projects Impl</name>
+
+   <!-- This is where the build goes -->
+   <build>
+      <defaultGoal>clean</defaultGoal>
+   </build>
+   <!-- There are not many contributors -->
+   <contributors>
+      <contributor>
+         <name>George</name>
+         <email>ggastald@redhat.com</email>
+      </contributor>
+   </contributors>
+</project>

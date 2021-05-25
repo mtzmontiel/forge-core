@@ -1,16 +1,10 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.resource.monitor;
-
-import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
-import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
 import java.io.IOException;
 import java.nio.file.ClosedWatchServiceException;
@@ -33,14 +27,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.jboss.forge.furnace.util.OperatingSystemUtils;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
 /**
  * Uses {@link WatchService} to watch files
  *
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
-public class FileWatcher implements Runnable
+class FileWatcher implements Runnable
 {
    private static Logger log = Logger.getLogger(FileWatcher.class.getName());
 
@@ -113,10 +110,6 @@ public class FileWatcher implements Runnable
    private void register(Path path, ResourceMonitorImpl monitorImpl) throws IOException
    {
       WatchKey key = path.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-      if (OperatingSystemUtils.isWindows())
-      {
-         JDK_8029516.patch(key);
-      }
       keys.put(key, monitorImpl);
    }
 
@@ -167,12 +160,18 @@ public class FileWatcher implements Runnable
             ResourceMonitorImpl resourceMonitor = keys.get(key);
             if (resourceMonitor == null)
             {
-               log.finest("WatchKey not recognized " + name + " - " + key.watchable() + "> " + kind);
+               if (log.isLoggable(Level.FINEST))
+               {
+                  log.finest("WatchKey not recognized " + name + " - " + key.watchable() + "> " + kind);
+               }
                continue;
             }
             Path resourcePath = resourceMonitor.getResourcePath();
             Path child = resourcePath.resolve(name);
-            log.log(Level.FINE, String.format("%s: %s %s %s\n", event.kind().name(), child, key, keys.keySet()));
+            if (log.isLoggable(Level.FINE))
+            {
+               log.log(Level.FINE, String.format("%s: %s %s %s\n", event.kind().name(), child, key, keys.keySet()));
+            }
             if (kind == ENTRY_CREATE)
             {
                try

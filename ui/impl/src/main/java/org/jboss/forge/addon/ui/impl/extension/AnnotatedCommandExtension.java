@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.extension;
 
 import java.lang.reflect.Method;
@@ -19,6 +18,7 @@ import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.ProcessAnnotatedType;
+import javax.enterprise.inject.spi.WithAnnotations;
 
 import org.jboss.forge.addon.ui.annotation.Command;
 import org.jboss.forge.furnace.addons.AddonId;
@@ -27,7 +27,8 @@ public class AnnotatedCommandExtension implements Extension
 {
    private static final Map<AddonId, Set<Method>> annotationMethods = new ConcurrentHashMap<>();
 
-   public <T> void observeAnnotationMethods(@Observes ProcessAnnotatedType<T> bean, final BeanManager beanManager)
+   public <T> void observeAnnotationMethods(@WithAnnotations(Command.class) @Observes ProcessAnnotatedType<T> bean,
+            final BeanManager beanManager)
    {
       AnnotatedType<T> annotatedType = bean.getAnnotatedType();
       AddonId addonId = AddonId.fromCoordinates(Thread.currentThread().getName());

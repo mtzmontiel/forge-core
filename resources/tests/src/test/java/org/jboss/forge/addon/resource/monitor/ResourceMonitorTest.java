@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.resource.monitor;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -19,9 +18,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.inject.Inject;
-
-import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.resource.FileResource;
@@ -33,16 +29,13 @@ import org.jboss.forge.addon.resource.events.ResourceCreated;
 import org.jboss.forge.addon.resource.events.ResourceDeleted;
 import org.jboss.forge.addon.resource.events.ResourceEvent;
 import org.jboss.forge.addon.resource.events.ResourceModified;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.util.Callables;
 import org.jboss.forge.furnace.util.OperatingSystemUtils;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -53,27 +46,14 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class ResourceMonitorTest
 {
-   @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:facets"),
-            @AddonDependency(name = "org.jboss.forge.addon:resources") })
-   public static ForgeArchive getDeployment()
-   {
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:facets"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:resources")
-               );
-
-      return archive;
-   }
-
-   @Inject
    private ResourceFactory resourceFactory;
-
    private ResourceMonitor monitor;
+
+   @Before
+   public void setUp()
+   {
+      this.resourceFactory = SimpleContainer.getServices(getClass().getClassLoader(), ResourceFactory.class).get();
+   }
 
    @After
    public void cancelMonitor()
@@ -94,7 +74,7 @@ public class ResourceMonitorTest
    @Test(expected = IllegalArgumentException.class)
    public void testResourceMonitorShouldThrowIllegalArgumentOnUnsupportedResource() throws Exception
    {
-      URLResource resource = resourceFactory.create(URLResource.class, new URL("http://forge.jboss.org"));
+      URLResource resource = resourceFactory.create(URLResource.class, new URL("https://forge.jboss.org"));
       Assert.assertNotNull(resource);
       monitor = resourceFactory.monitor(resource);
    }
@@ -143,7 +123,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 1;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
       final FileResource<?> childFile = childDir.getChild("child_file.txt").reify(FileResource.class);
 
       waitForMonitor(new Callable<Void>()
@@ -162,7 +142,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 2;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       waitForMonitor(new Callable<Void>()
       {
@@ -180,7 +160,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 3;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       Assert.assertEquals(3, eventCollector.size());
       Iterator<ResourceEvent> iterator = eventCollector.iterator();
@@ -227,7 +207,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 1;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
       final FileResource<?> childFile = childDir.getChild("child_file.txt").reify(FileResource.class);
 
       waitForMonitor(new Callable<Void>()
@@ -246,7 +226,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 2;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       waitForMonitor(new Callable<Void>()
       {
@@ -264,7 +244,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 4;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       Assert.assertEquals(4, eventCollector.size());
       Iterator<ResourceEvent> iterator = eventCollector.iterator();
@@ -385,7 +365,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 1;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       waitForMonitor(new Callable<Void>()
       {
@@ -403,7 +383,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 2;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       Assert.assertEquals(2, eventCollector.size());
       Iterator<ResourceEvent> iterator = eventCollector.iterator();
@@ -412,6 +392,7 @@ public class ResourceMonitorTest
       Assert.assertTrue(iterator.hasNext());
       Assert.assertThat(iterator.next(), is(instanceOf(ResourceDeleted.class)));
    }
+
    @Test
    public void testResourceMonitorDirectoryWithFilterWindows() throws Exception
    {
@@ -457,14 +438,14 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 1;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       waitForMonitor(new Callable<Void>()
       {
          @Override
          public Void call() throws Exception
          {
-            //Windows 7 adds ResourceModified
+            // Windows 7 adds ResourceModified
             // NEW EVENT: ResourceDeleted
             childFile2.delete();
             return null;
@@ -476,7 +457,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 3;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       Assert.assertEquals(3, eventCollector.size());
       Iterator<ResourceEvent> iterator = eventCollector.iterator();
@@ -531,7 +512,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 1;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       waitForMonitor(new Callable<Void>()
       {
@@ -549,7 +530,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 2;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       Assert.assertEquals(2, eventCollector.size());
       Iterator<ResourceEvent> iterator = eventCollector.iterator();
@@ -602,7 +583,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 1;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       waitForMonitor(new Callable<Void>()
       {
@@ -620,7 +601,7 @@ public class ResourceMonitorTest
          {
             return eventCollector.size() == 2;
          }
-      }, 5, TimeUnit.SECONDS);
+      }, 15, TimeUnit.SECONDS);
 
       Assert.assertEquals(2, eventCollector.size());
       Iterator<ResourceEvent> iterator = eventCollector.iterator();

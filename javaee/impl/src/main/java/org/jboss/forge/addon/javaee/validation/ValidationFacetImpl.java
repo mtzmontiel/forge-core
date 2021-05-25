@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -41,6 +41,12 @@ public class ValidationFacetImpl extends AbstractJavaEEFacet implements Validati
    }
 
    @Override
+   public String getSpecName()
+   {
+      return "Bean Validation";
+   }
+
+   @Override
    public boolean install()
    {
       if (!isInstalled())
@@ -63,13 +69,13 @@ public class ValidationFacetImpl extends AbstractJavaEEFacet implements Validati
    @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("1.0");
+      return SingleVersion.valueOf("1.0");
    }
 
    @Override
    protected Map<Dependency, List<Dependency>> getRequiredDependencyOptions()
    {
-      return Collections.singletonMap(JAVAX_VALIDATION_API, Arrays.asList(JAVAX_VALIDATION_API));
+      return Collections.singletonMap(JAVAX_VALIDATION_API, Arrays.asList(JAVAX_VALIDATION_API, JAVAEE7));
    }
 
    /*
@@ -108,7 +114,7 @@ public class ValidationFacetImpl extends AbstractJavaEEFacet implements Validati
    private void createDefaultConfig(FileResource<?> descriptor)
    {
       ValidationConfigurationDescriptor descriptorContents = Descriptors
-               .create(ValidationConfigurationDescriptor.class);
+               .create(ValidationConfigurationDescriptor.class).version("1.1");
       descriptor.setContents(descriptorContents.exportAsString());
    }
 }

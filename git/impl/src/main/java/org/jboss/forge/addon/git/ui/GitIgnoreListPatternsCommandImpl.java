@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.git.ui;
 
 import org.jboss.forge.addon.git.gitignore.resources.GitIgnoreResource;
@@ -14,7 +20,7 @@ public class GitIgnoreListPatternsCommandImpl extends AbstractGitCommand impleme
    @Override
    public UICommandMetadata getMetadata(UIContext context)
    {
-      return Metadata.from(super.getMetadata(context), this.getClass()).name("GITIGNORE: List patterns")
+      return Metadata.from(super.getMetadata(context), this.getClass()).name("GitIgnore: List patterns")
                .description("List available .gitignore patterns");
    }
 

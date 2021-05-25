@@ -1,10 +1,9 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.projects.building;
 
 import java.io.PrintStream;
@@ -27,6 +26,15 @@ public interface ProjectBuilder
     * Enable or disable test execution during build.
     */
    ProjectBuilder runTests(boolean test);
+
+   /**
+    * Profiles to be enabled for this build (ignored if not applicable to the project build system)
+    */
+   default ProjectBuilder profiles(String... profiles)
+   {
+      // Default implementation is a NOOP
+      return this;
+   }
 
    /**
     * Execute the build, returning the final product as a {@link Resource}.

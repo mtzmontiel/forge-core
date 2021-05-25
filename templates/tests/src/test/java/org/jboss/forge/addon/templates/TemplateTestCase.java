@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -10,20 +10,21 @@ import java.io.File;
 import java.net.URL;
 import java.util.Collections;
 
-import javax.inject.Inject;
-
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
 import org.jboss.forge.addon.templates.freemarker.FreemarkerTemplate;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
+import org.jboss.forge.arquillian.AddonDeployment;
+import org.jboss.forge.arquillian.AddonDeployments;
+import org.jboss.forge.arquillian.archive.AddonArchive;
+import org.jboss.forge.furnace.addons.AddonRegistry;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -31,31 +32,37 @@ import org.junit.runner.RunWith;
 public class TemplateTestCase
 {
    @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:templates"),
-            @AddonDependency(name = "org.jboss.forge.addon:resources") })
-   public static ForgeArchive getDeployment()
+   @AddonDeployments({
+            @AddonDeployment(name = "org.jboss.forge.addon:templates"),
+            @AddonDeployment(name = "org.jboss.forge.addon:resources") })
+   public static AddonArchive getDeployment()
    {
       String packagePath = TemplateTestCase.class.getPackage().getName().replace('.', '/');
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap.create(AddonArchive.class)
                .addBeansXML()
                .addClass(JavaBean.class)
                .addAsResource(TemplateTestCase.class.getResource("template.ftl"), packagePath + "/template.ftl")
                .addAsResource(TemplateTestCase.class.getResource("includes.ftl"), packagePath + "/includes.ftl")
+               .addAsServiceProvider("org.jboss.forge.furnace.container.simple.Service",
+                        TemplateTestCase.class.getName())
                .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
+                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:simple"),
                         AddonDependencyEntry.create("org.jboss.forge.addon:templates"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:resources")
-               );
+                        AddonDependencyEntry.create("org.jboss.forge.addon:resources"));
 
       return archive;
    }
 
-   @Inject
    private ResourceFactory resourceFactory;
-
-   @Inject
    private TemplateFactory templateFactory;
+
+   @Before
+   public void setUp()
+   {
+      AddonRegistry addonRegistry = SimpleContainer.getFurnace(getClass().getClassLoader()).getAddonRegistry();
+      this.resourceFactory = addonRegistry.getServices(ResourceFactory.class).get();
+      this.templateFactory = addonRegistry.getServices(TemplateFactory.class).get();
+   }
 
    @Test
    public void testProcessorFactoryInjection() throws Exception

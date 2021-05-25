@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -53,20 +53,6 @@ public class JavaEqualsHashcodeCommand extends AbstractProjectCommand
 
    private UISelectMany<String> fields;
 
-   private InputComponentFactory inputFactory;
-
-   private ProjectFactory projectFactory;
-
-   private ProjectOperations projectOperations;
-
-   public JavaEqualsHashcodeCommand()
-   {
-      Furnace furnace = SimpleContainer.getFurnace(this.getClass().getClassLoader());
-      this.inputFactory = furnace.getAddonRegistry().getServices(InputComponentFactory.class).get();
-      this.projectFactory = furnace.getAddonRegistry().getServices(ProjectFactory.class).get();
-      this.projectOperations = furnace.getAddonRegistry().getServices(ProjectOperations.class).get();
-   }
-
    @Override
    public UICommandMetadata getMetadata(UIContext context)
    {
@@ -78,6 +64,7 @@ public class JavaEqualsHashcodeCommand extends AbstractProjectCommand
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      InputComponentFactory inputFactory = builder.getInputComponentFactory();
       UIContext uiContext = builder.getUIContext();
       Project project = getSelectedProject(uiContext);
       targetClass = inputFactory.createSelectOne("targetClass", JavaResource.class);
@@ -90,12 +77,14 @@ public class JavaEqualsHashcodeCommand extends AbstractProjectCommand
       {
          targetClass.setValue((JavaResource) initialSelection.get());
       }
+      Furnace furnace = SimpleContainer.getFurnace(this.getClass().getClassLoader());
+      ProjectOperations projectOperations = furnace.getAddonRegistry().getServices(ProjectOperations.class).get();
       targetClass.setValueChoices(projectOperations.getProjectClasses(project));
 
       fields = inputFactory.createSelectMany("fields", String.class);
       fields.setDescription("Fields, which should be used in the hashCode/equals method generation");
       fields.setRequired(true).setRequiredMessage("At least one field should be selected");
-      
+
       fields.setValueChoices(new Callable<Iterable<String>>()
       {
          @Override
@@ -116,14 +105,7 @@ public class JavaEqualsHashcodeCommand extends AbstractProjectCommand
             return strings;
          }
       });
-      fields.setEnabled(new Callable<Boolean>()
-      {
-         @Override
-         public Boolean call()
-         {
-            return (targetClass.getValue() != null);
-         }
-      });
+      fields.setEnabled(() -> targetClass.hasValue());
       builder.add(targetClass).add(fields);
    }
 
@@ -186,6 +168,7 @@ public class JavaEqualsHashcodeCommand extends AbstractProjectCommand
    @Override
    protected ProjectFactory getProjectFactory()
    {
-      return projectFactory;
+      Furnace furnace = SimpleContainer.getFurnace(this.getClass().getClassLoader());
+      return furnace.getAddonRegistry().getServices(ProjectFactory.class).get();
    }
 }

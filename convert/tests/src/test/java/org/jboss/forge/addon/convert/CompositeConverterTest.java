@@ -1,17 +1,14 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.convert;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.jboss.forge.addon.convert.CompositeConverter;
-import org.jboss.forge.addon.convert.Converter;
 import org.junit.Assert;
 import org.junit.Test;
 

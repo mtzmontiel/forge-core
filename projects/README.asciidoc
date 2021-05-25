@@ -66,6 +66,42 @@ To use this addon, you must add it as a dependency in the *pom.xml* of your `for
 ----      
 == Features
 
+Stacks:: Starting from Forge 3.0.0.Beta2, projects can now be created targetting a specific stack (JavaEE 6, JavaEE 7, etc). The _Project: New wizard_ automatically lists all the available *StackFacet* implementations allowing the user to choose during project creation.
+
+[options="header"]
+|===
+|Class |Functionality
+
+|Stack
+|A Stack references multiple _ProjectFacet_ classes. 
+
+|StackFacet
+|A Stack is associated with a project through a StackFacet. Implementations can decide how to install it (by looking up the project dependencies, by reading a configuration file, etc) and *must* provide a Stack.
+
+|StackBuilder
+|The preferred way to build Stack objects
+
+|@StackConstraint
+|Commands can be annotated with _@StackConstraint_ to automatically be enabled only if the specified facets are supported by the current project.
+
+|===
+
+[TIP] 
+====
+To get a reference to the _Stack_ enabled in the project:
+
+[source,java]
+----
+Project project = ...
+Optional<Stack> stack = project.getStack();
+stack.ifPresent((stack) -> System.out.println("Stack: "+stack));
+// or
+if (stack.isPresent()) {
+   Stack stackObj = stack.get();
+   boolean supportsJpa = stackObj.supports(JPAFacet.class);
+}
+----
+====
 
 ProjectFactory service for simple project location and creation::
  The `ProjectFactory` provides an entry-point API for all Project operations: both creation of new, and location and modification of existing projects:
@@ -258,11 +294,11 @@ TIP: `ProjectListener` instances may also be registered directly via the `Projec
 (Optional) ui addon integration::
  The projects addon supplies a `UIWizard` implementation called "New Project". This, as the name suggests, is used for creating new projects from a UI provider such as Eclipse, IntelliJ, NetBeans, or the command line shell (CLI).
 +
-Additional project types can be supplied to the "New Project" wizard via extension of the `ProjectType` service interface. New implementations are automatically detected by the "New Project" wizard when it is executed.
+Additional project types can be supplied to the "New Project" wizard via extension of the `ProjectType` service interface (or the `AbstractProjectType` skeleton class). New implementations are automatically detected by the "New Project" wizard when it is executed.
 +
 [source,java]
 ----
-public class CustomProjectType implements ProjectType {
+public class CustomProjectType extends AbstractProjectType {
 
    @Override
    public String getType() {
@@ -306,3 +342,24 @@ Project temp = factory.createTempProject();
 
 Consistent programming experience::
  Because the Project API provides an abstract model for interacting with existing and creating new projects, it is used in a number of addons and should be considered the standard approach for project manipulation.
+ 
+ClassLoaderFacet:: 
+This facet exposes a `URLClassLoader` that encompasses all `Dependency` instances on which this project depends. It also includes the compiled/fully built `PackagingFacet#getFinalArtifact()` from the project sources itself. 
+This is the equivalent of class-loading the entire project classpath.
+[source,java]
+----
+ClassLoaderFacet facet = project.getFacet(ClassLoaderFacet.class);
+// This classloader contains all the project classes and their dependencies
+try (URLClassLoader classLoader = facet.getClassLoader()) {
+     // Load classes and use the reflection API to introspect classes
+     Class<?> clazz = classLoader.loadClass("com.example.Foo"); 
+}
+----
+
+[WARNING]
+You *MUST* call `URLClassLoader#close()` when finished with this object. Failure to close this object upon completion will result in fatal memory leaks over time. If the scope of work is appropriate, consider using a try-with-resources block to encapsulate the operations and automatically clean up any ClassLoader resources.
+
+[IMPORTANT] 
+You must also clean up and release any `Class` references that were produced by this `ClassLoader`. It is not enough to close this. Held `Class` references will keep the `ClassLoader` from being garbage collected.
+
+ 

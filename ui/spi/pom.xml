@@ -3,7 +3,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>ui-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
       <relativePath>../pom.xml</relativePath>
    </parent>
 
@@ -23,31 +23,16 @@
          <classifier>forge-addon</classifier>
       </dependency>
       
-      
+      <!-- Furnace container -->
       <dependency>
-         <groupId>org.jboss.forge.furnace</groupId>
-         <artifactId>furnace-api</artifactId>
+         <groupId>org.jboss.forge.furnace.container</groupId>
+         <artifactId>simple</artifactId>
+         <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>
    </dependencies>
    <build>
       <plugins>
-         <plugin>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-maven-plugin</artifactId>
-            <executions>
-               <execution>
-                  <id>generate-dot</id>
-                  <phase>prepare-package</phase>
-                  <goals>
-                     <goal>generate-dot</goal>
-                  </goals>
-                  <configuration>
-                     <attach>true</attach>
-                  </configuration>
-               </execution>
-            </executions>
-         </plugin>
          <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-jar-plugin</artifactId>
@@ -67,4 +52,29 @@
          </plugin>
       </plugins>
    </build>
+   <profiles>
+      <profile>
+         <id>release</id>
+         <build>
+            <plugins>
+               <plugin>
+                  <groupId>org.jboss.forge.furnace</groupId>
+                  <artifactId>furnace-maven-plugin</artifactId>
+                  <executions>
+                     <execution>
+                        <id>generate-dot</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                           <goal>generate-dot</goal>
+                        </goals>
+                        <configuration>
+                           <attach>true</attach>
+                        </configuration>
+                     </execution>
+                  </executions>
+               </plugin>
+            </plugins>
+         </build>
+      </profile>
+   </profiles>   
 </project>

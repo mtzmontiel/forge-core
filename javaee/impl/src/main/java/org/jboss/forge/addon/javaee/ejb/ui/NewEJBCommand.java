@@ -1,10 +1,12 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.addon.javaee.ejb.ui;
+
+import static org.jboss.forge.addon.javaee.JavaEEPackageConstants.DEFAULT_SERVICE_PACKAGE;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,7 @@ import org.jboss.forge.addon.javaee.ui.AbstractJavaEECommand;
 import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
 import org.jboss.forge.addon.parser.java.resources.JavaResource;
 import org.jboss.forge.addon.projects.Project;
+import org.jboss.forge.addon.projects.stacks.annotations.StackConstraint;
 import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.ui.context.UIBuilder;
@@ -40,6 +43,7 @@ import org.jboss.forge.addon.ui.wizard.UIWizard;
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
+@StackConstraint(EJBFacet.class)
 public class NewEJBCommand extends AbstractJavaEECommand implements UIWizard
 {
    @Inject
@@ -120,7 +124,7 @@ public class NewEJBCommand extends AbstractJavaEECommand implements UIWizard
 
    private String calculateServicePackage(Project project)
    {
-      return project.getFacet(JavaSourceFacet.class).getBasePackage() + ".service";
+      return project.getFacet(JavaSourceFacet.class).getBasePackage() + "." + DEFAULT_SERVICE_PACKAGE;
    }
 
    @Override

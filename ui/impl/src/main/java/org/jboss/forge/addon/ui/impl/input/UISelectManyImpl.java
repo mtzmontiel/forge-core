@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -7,13 +7,16 @@
 package org.jboss.forge.addon.ui.impl.input;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.jboss.forge.addon.ui.input.UISelectMany;
 import org.jboss.forge.addon.ui.input.ValueChangeListener;
+import org.jboss.forge.addon.ui.input.events.ValueChangeEvent;
 import org.jboss.forge.addon.ui.util.InputComponents;
 import org.jboss.forge.furnace.util.Callables;
+import org.jboss.forge.furnace.util.Lists;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
@@ -75,6 +78,38 @@ public class UISelectManyImpl<VALUETYPE> extends AbstractUISelectInputComponent<
    public boolean hasValue()
    {
       return value != null && value.iterator().hasNext();
+   }
+
+   @Override
+   public int[] getSelectedIndexes()
+   {
+      return getIndexesFor(getValue());
+   }
+
+   private int[] getIndexesFor(Iterable<VALUETYPE> value)
+   {
+      List<VALUETYPE> valueChoices = Lists.toList(getValueChoices());
+      List<VALUETYPE> thisValue = Lists.toList(value);
+      int[] indexes = new int[thisValue.size()];
+      for (int i = 0; i < thisValue.size(); i++)
+      {
+         indexes[i] = valueChoices.indexOf(thisValue.get(i));
+      }
+      return indexes;
+
+   }
+
+   @Override
+   @SuppressWarnings("unchecked")
+   protected void fireValueChangeListeners(Object newValue)
+   {
+      int[] oldSelectedIndexes = getSelectedIndexes();
+      int[] newSelectedIndexes = getIndexesFor((Iterable<VALUETYPE>) newValue);
+      ValueChangeEvent evt = new ValueChangeEvent(this, getValue(), newValue, oldSelectedIndexes, newSelectedIndexes);
+      for (ValueChangeListener listener : getValueChangeListeners())
+      {
+         listener.valueChanged(evt);
+      }
    }
 
    @Override

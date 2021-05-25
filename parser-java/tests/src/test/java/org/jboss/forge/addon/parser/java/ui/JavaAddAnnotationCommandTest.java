@@ -1,43 +1,55 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.parser.java.ui;
+
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.FileNotFoundException;
+import java.lang.annotation.Documented;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import javax.inject.Inject;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.facets.FacetFactory;
 import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
+import org.jboss.forge.addon.parser.java.resources.JavaResource;
 import org.jboss.forge.addon.parser.java.ui.annotations.JavaAddAnnotationCommand;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
+import org.jboss.forge.addon.shell.test.ShellTest;
 import org.jboss.forge.addon.ui.controller.CommandController;
+import org.jboss.forge.addon.ui.result.Failed;
+import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.test.UITestHarness;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.forge.roaster.Roaster;
+import org.jboss.forge.roaster.model.JavaType;
 import org.jboss.forge.roaster.model.source.AnnotationSource;
 import org.jboss.forge.roaster.model.source.JavaClassSource;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
-import javax.inject.Inject;
-import java.io.FileNotFoundException;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 /**
- * Testing {@link org.jboss.forge.addon.parser.java.ui.annotations.JavaAddAnnotationCommand} class.
- * Use cases:
- * 1. Adding annotation on class
- * 2. Adding annotation on property
- * 3. Adding annotation on method
- * 4. Adding same annotation more than once - should be overwritten
+ * Testing {@link org.jboss.forge.addon.parser.java.ui.annotations.JavaAddAnnotationCommand} class. Use cases: 1. Adding
+ * annotation on class 2. Adding annotation on property 3. Adding annotation on method 4. Adding same annotation more
+ * than once - should be overwritten
  *
  * @author <a href="mailto:robert@balent.cz">Robert Balent</a>
  */
@@ -59,34 +71,33 @@ public class JavaAddAnnotationCommandTest
    private JavaClassSource targetClass;
    private CommandController commandController;
 
+   @Inject
+   private ShellTest shellTest;
+
    @Deployment
-   @Dependencies({
+   @AddonDependencies({
             @AddonDependency(name = "org.jboss.forge.addon:parser-java"),
+            @AddonDependency(name = "org.jboss.forge.addon:shell-test-harness"),
             @AddonDependency(name = "org.jboss.forge.addon:ui-test-harness"),
             @AddonDependency(name = "org.jboss.forge.addon:projects"),
             @AddonDependency(name = "org.jboss.forge.addon:maven"),
             @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      return ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:parser-java"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui-test-harness"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui-test-harness")
-               );
+      return ShrinkWrap.create(AddonArchive.class).addBeansXML();
    }
 
    @Before
    public void setup() throws Exception
    {
       createTempProject();
+   }
 
+   @After
+   public void tearDown() throws Exception
+   {
+      shellTest.close();
    }
 
    @Test
@@ -338,6 +349,21 @@ public class JavaAddAnnotationCommandTest
       {
          assertTrue(ex.getMessage().contains("Can't parse annotation"));
       }
+   }
+
+   @Test
+   public void testAddAnnotationFromShell() throws Exception
+   {
+      shellTest.getShell().setCurrentResource(project.getRoot());
+      shellTest.execute("java-new-class --named MyClass --target-package org.demo.classes", 15, TimeUnit.SECONDS);
+      JavaResource javaResource = project.getFacet(JavaSourceFacet.class).getJavaResource("org.demo.classes.MyClass");
+      Assert.assertTrue(javaResource.exists());
+      Result result = shellTest.execute(
+               "java-add-annotation --annotation java.lang.annotation.Documented --target-class org.test.MyClass", 5,
+               TimeUnit.SECONDS);
+      Assert.assertThat(result, not(instanceOf(Failed.class)));
+      JavaType<?> javaType = javaResource.getJavaType();
+      Assert.assertTrue(javaType.hasAnnotation(Documented.class));
    }
 
    private void createTempProject()

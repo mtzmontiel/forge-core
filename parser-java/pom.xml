@@ -3,7 +3,7 @@
    <parent>
       <groupId>org.jboss.forge</groupId>
       <artifactId>forge-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
       <relativePath>../pom.xml</relativePath>
    </parent>
 
@@ -21,7 +21,7 @@
    </modules>
 
    <properties>
-      <version.roaster>2.8.2.Final</version.roaster>
+      <version.roaster>2.20.8.Final</version.roaster>
    </properties>
 
    <dependencyManagement>
@@ -38,13 +38,10 @@
          </dependency>
          <dependency>
             <groupId>org.jboss.forge.roaster</groupId>
-            <artifactId>roaster-api</artifactId>
+            <artifactId>roaster-bom</artifactId>
             <version>${version.roaster}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.roaster</groupId>
-            <artifactId>roaster-jdt</artifactId>
-            <version>${version.roaster}</version>
+            <type>pom</type>
+            <scope>import</scope>
          </dependency>
       </dependencies>
    </dependencyManagement>

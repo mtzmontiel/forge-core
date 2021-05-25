@@ -1,13 +1,13 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.rest;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,8 +45,14 @@ public class RestFacetImpl_2_0 extends AbstractRestFacet implements RestFacet_2_
    }
 
    @Override
+   protected Iterable<Dependency> getRequiredManagedDependenciesFor(Dependency dependency)
+   {
+      return Collections.emptySet();
+   }
+
+   @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("2.0");
+      return SingleVersion.valueOf("2.0");
    }
 }

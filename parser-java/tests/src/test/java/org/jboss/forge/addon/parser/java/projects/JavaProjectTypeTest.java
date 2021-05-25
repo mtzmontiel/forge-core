@@ -1,21 +1,22 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.addon.parser.java.projects;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+
 import javax.inject.Inject;
 
+import org.hamcrest.CoreMatchers;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.projects.ProjectType;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
-import org.jboss.forge.furnace.services.Imported;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
 import org.junit.Test;
@@ -28,50 +29,29 @@ import org.junit.runner.RunWith;
 public class JavaProjectTypeTest
 {
    @Deployment
-   @Dependencies({
+   @AddonDependencies({
+            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi"),
             @AddonDependency(name = "org.jboss.forge.addon:parser-java"),
-            @AddonDependency(name = "org.jboss.forge.addon:projects"),
-            @AddonDependency(name = "org.jboss.forge.addon:ui")
+            @AddonDependency(name = "org.jboss.forge.addon:projects")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:parser-java"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects")
-               );
-
+      AddonArchive archive = ShrinkWrap.create(AddonArchive.class)
+               .addBeansXML();
       return archive;
    }
 
    @Inject
-   private Imported<ProjectType> types;
+   private Iterable<ProjectType> types;
 
+   @SuppressWarnings("unchecked")
    @Test
    public void testJavaProjectTypeExists()
    {
-      boolean foundJar = false;
-      boolean foundWar = false;
-      boolean foundEar = false;
-      for (ProjectType type : types)
-      {
-         if ("Java Enterprise Archive".equals(type.getType()))
-         {
-            foundEar = true;
-         }
-         else if ("Java Library".equals(type.getType()))
-         {
-            foundJar = true;
-         }
-         else if ("Java Web Application".equals(type.getType()))
-         {
-            foundWar = true;
-         }
-      }
-      Assert.assertTrue(foundEar);
-      Assert.assertTrue(foundJar);
-      Assert.assertTrue(foundWar);
+      Assert.assertThat(
+               types,
+               CoreMatchers.<ProjectType> hasItems(instanceOf(JavaEnterpriseProjectType.class),
+                        instanceOf(JavaProjectType.class),
+                        instanceOf(JavaWebProjectType.class)));
    }
 }

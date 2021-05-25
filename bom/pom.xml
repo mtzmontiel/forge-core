@@ -3,16 +3,16 @@
    <parent>
       <groupId>org.jboss</groupId>
       <artifactId>jboss-parent</artifactId>
-      <version>14</version>
+      <version>36</version>
       <relativePath />
    </parent>
    <groupId>org.jboss.forge</groupId>
    <artifactId>forge-bom</artifactId>
-   <version>2.11.1-SNAPSHOT</version>
+   <version>3.9.9-SNAPSHOT</version>
    <packaging>pom</packaging>
    <name>Forge - BOM</name>
    <description>The Forge "Bill of Materials"</description>
-   <url>http://forge.jboss.org</url>
+   <url>https://forge.jboss.org</url>
 
    <licenses>
       <license>
@@ -51,100 +51,26 @@
 
    <issueManagement>
       <system>jira</system>
-      <url>https://jira.jboss.org/jira/browse/FORGE</url>
+      <url>https://issues.jboss.org/browse/FORGE</url>
    </issueManagement>
 
    <properties>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-      <version.furnace>${project.version}</version.furnace>
+      <version.furnace>2.29.0.Final</version.furnace>
+      <version.slf4j.addon>1.7.13</version.slf4j.addon>
+      <version.shrinkwrap.addon>1.2.6</version.shrinkwrap.addon>
+      <version.assertj.addon>3.6.2</version.assertj.addon>
    </properties>
 
    <dependencyManagement>
       <dependencies>
-
-         <!-- CDI Container -->
-         <dependency>
-            <groupId>org.jboss.forge.furnace.container</groupId>
-            <artifactId>cdi</artifactId>
-            <classifier>forge-addon</classifier>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace.container</groupId>
-            <artifactId>cdi-api</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-
-         <!-- Simple Container -->
-         <dependency>
-            <groupId>org.jboss.forge.furnace.container</groupId>
-            <artifactId>simple</artifactId>
-            <classifier>forge-addon</classifier>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace.container</groupId>
-            <artifactId>simple-api</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-
-         <!-- Furnace Runtime -->
+         <!-- Furnace BOM -->
          <dependency>
             <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace</artifactId>
+            <artifactId>furnace-bom</artifactId>
             <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-api</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-proxy</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-se</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-manager</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-manager-api</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-manager-spi</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-manager-resolver-maven</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-
-         <!-- Test Harneses Dependencies -->
-         <dependency>
-            <groupId>org.jboss.forge.furnace.test</groupId>
-            <artifactId>furnace-test-harness</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace.test</groupId>
-            <artifactId>arquillian-furnace-classpath</artifactId>
-            <version>${version.furnace}</version>
-         </dependency>
-         <dependency>
-            <groupId>org.jboss.forge.furnace.test</groupId>
-            <artifactId>arquillian-forge-core</artifactId>
-            <version>${version.furnace}</version>
+            <type>pom</type>
+            <scope>import</scope>
          </dependency>
 
          <!-- Forge Addon Dependencies -->
@@ -319,12 +245,24 @@
          </dependency>
          <dependency>
             <groupId>org.jboss.forge.addon</groupId>
+            <artifactId>parser-yaml</artifactId>
+            <version>${project.version}</version>
+            <classifier>forge-addon</classifier>
+         </dependency>
+         <dependency>
+            <groupId>org.jboss.forge.addon</groupId>
             <artifactId>parser-xml-api</artifactId>
             <version>${project.version}</version>
          </dependency>
          <dependency>
             <groupId>org.jboss.forge.addon</groupId>
             <artifactId>projects</artifactId>
+            <version>${project.version}</version>
+            <classifier>forge-addon</classifier>
+         </dependency>
+         <dependency>
+            <groupId>org.jboss.forge.addon</groupId>
+            <artifactId>projects-generic</artifactId>
             <version>${project.version}</version>
             <classifier>forge-addon</classifier>
          </dependency>
@@ -375,6 +313,12 @@
          </dependency>
          <dependency>
             <groupId>org.jboss.forge.addon</groupId>
+            <artifactId>script</artifactId>
+            <version>${project.version}</version>
+            <classifier>forge-addon</classifier>
+         </dependency>
+         <dependency>
+            <groupId>org.jboss.forge.addon</groupId>
             <artifactId>shell</artifactId>
             <version>${project.version}</version>
             <classifier>forge-addon</classifier>
@@ -414,6 +358,17 @@
          </dependency>
          <dependency>
             <groupId>org.jboss.forge.addon</groupId>
+            <artifactId>testing</artifactId>
+            <version>${project.version}</version>
+            <classifier>forge-addon</classifier>
+         </dependency>
+         <dependency>
+            <groupId>org.jboss.forge.addon</groupId>
+            <artifactId>testing-api</artifactId>
+            <version>${project.version}</version>
+         </dependency>
+         <dependency>
+            <groupId>org.jboss.forge.addon</groupId>
             <artifactId>text</artifactId>
             <version>${project.version}</version>
             <classifier>forge-addon</classifier>
@@ -434,6 +389,12 @@
             <groupId>org.jboss.forge.addon</groupId>
             <artifactId>ui-api</artifactId>
             <version>${project.version}</version>
+         </dependency>
+         <dependency>
+            <groupId>org.jboss.forge.addon</groupId>
+            <artifactId>ui-example</artifactId>
+            <version>${project.version}</version>
+            <classifier>forge-addon</classifier>
          </dependency>
          <dependency>
             <groupId>org.jboss.forge.addon</groupId>
@@ -458,6 +419,24 @@
             <artifactId>git-api</artifactId>
             <version>${project.version}</version>
          </dependency>
+         <dependency>
+            <groupId>org.jboss.forge.addon</groupId>
+            <artifactId>slf4j</artifactId>
+            <classifier>forge-addon</classifier>
+            <version>${version.slf4j.addon}</version>
+         </dependency>
+         <dependency>
+            <groupId>org.jboss.forge.addon</groupId>
+            <artifactId>shrinkwrap</artifactId>
+            <classifier>forge-addon</classifier>
+            <version>${version.shrinkwrap.addon}</version>
+         </dependency>
+         <dependency>
+            <groupId>org.jboss.forge.addon</groupId>
+            <artifactId>assertj</artifactId>
+            <classifier>forge-addon</classifier>
+            <version>${version.assertj.addon}</version>
+         </dependency>
       </dependencies>
    </dependencyManagement>
 
@@ -465,7 +444,43 @@
       <connection>scm:git:git://github.com/forge/core.git</connection>
       <developerConnection>scm:git:git@github.com:forge/core.git</developerConnection>
       <url>http://github.com/forge/core</url>
-     <tag>HEAD</tag>
-  </scm>
+      <tag>HEAD</tag>
+   </scm>
+
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-release-plugin</artifactId>
+            <configuration>
+               <preparationGoals>clean install</preparationGoals>
+               <releaseProfiles>gpg-sign,release</releaseProfiles>
+               <tagNameFormat>@{project.version}</tagNameFormat>
+            </configuration>
+         </plugin>
+         <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <version>1.6.8</version>
+            <extensions>true</extensions>
+            <configuration>
+               <autoReleaseAfterClose>true</autoReleaseAfterClose>
+               <serverId>ossrh</serverId>
+               <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+
+   <distributionManagement>
+      <snapshotRepository>
+         <id>ossrh</id>
+         <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      </snapshotRepository>
+      <repository>
+         <id>ossrh</id>
+         <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+      </repository>
+   </distributionManagement>
 
 </project>

@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -12,7 +12,7 @@ import org.jboss.forge.addon.javaee.jpa.DatabaseType;
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  * 
  */
-public class WildflyContainer extends JavaEEDefaultContainer
+public class WildflyContainer extends JavaEE7Container
 {
    private static final String EXAMPLE_DS = "java:jboss/datasources/ExampleDS";
 

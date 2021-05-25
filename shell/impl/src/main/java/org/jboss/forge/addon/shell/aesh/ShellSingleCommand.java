@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -14,6 +14,7 @@ import org.jboss.forge.addon.shell.ui.ShellContext;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.controller.CommandController;
 import org.jboss.forge.addon.ui.input.InputComponent;
+import org.jboss.forge.addon.ui.output.UIOutput;
 
 /**
  * Encapsulates a {@link UICommand} to be useful in a Shell context
@@ -25,7 +26,7 @@ import org.jboss.forge.addon.ui.input.InputComponent;
 public class ShellSingleCommand extends AbstractShellInteraction
 {
    private final CommandController controller;
-   private CommandLineParser commandLineParser;
+   private CommandLineParser<?> commandLineParser;
 
    /**
     * Creates a new {@link ShellSingleCommand} based on the shell and initial selection
@@ -37,12 +38,14 @@ public class ShellSingleCommand extends AbstractShellInteraction
    }
 
    @Override
-   public CommandLineParser getParser(ShellContext shellContext, String completeLine) throws Exception
+   public CommandLineParser<?> getParser(ShellContext shellContext, String completeLine, CommandAdapter command)
+            throws Exception
    {
       if (this.commandLineParser == null)
       {
          controller.initialize();
-         this.commandLineParser = commandLineUtil.generateParser(this.controller, shellContext, controller.getInputs());
+         this.commandLineParser = commandLineUtil.generateParser(command, this.controller, shellContext,
+                  controller.getInputs());
       }
       return this.commandLineParser;
    }
@@ -51,10 +54,21 @@ public class ShellSingleCommand extends AbstractShellInteraction
     * Prompts for required missing values
     */
    @Override
-   public void promptRequiredMissingValues(ShellImpl shell)
+   public boolean promptRequiredMissingValues(ShellImpl shell) throws InterruptedException
    {
       Map<String, InputComponent<?, ?>> inputs = getController().getInputs();
-      promptRequiredMissingValues(shell, inputs.values());
+      if (hasMissingRequiredInputValues(inputs.values()))
+      {
+         UIOutput output = shell.getOutput();
+         if (!getContext().isInteractive())
+         {
+            output.error(output.out(), NON_INTERACTIVE_MODE_MESSAGE);
+            return false;
+         }
+         output.info(output.out(), INTERACTIVE_MODE_MESSAGE);
+         promptRequiredMissingValues(shell, inputs.values());
+      }
+      return true;
    }
 
 }

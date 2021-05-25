@@ -1,16 +1,15 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.dependencies.builder;
 
 import java.util.Map;
 
 import org.jboss.forge.addon.dependencies.Coordinate;
-import org.jboss.forge.addon.dependencies.Dependency;
+import org.jboss.forge.furnace.util.Strings;
 
 public class CoordinateBuilder implements Coordinate
 {
@@ -36,38 +35,37 @@ public class CoordinateBuilder implements Coordinate
       CoordinateBuilder builder = CoordinateBuilder.create();
       // groupId:artifactId:packaging:classifier:version
       String[] split = coordinates.split("\\:");
-      if (split.length == 0)
+      switch (split.length)
       {
-         throw new IllegalArgumentException(
-                  "Malformed coordinate. Should be groupId:artifactId:[packaging]:[classifier]:[version]");
-      }
-      if (split.length > 0)
-      {
+      case 1:
          builder.setGroupId(split[0]);
-      }
-      if (split.length > 1)
-      {
+         break;
+      case 2:
+         builder.setGroupId(split[0]);
          builder.setArtifactId(split[1]);
-      }
-      if (split.length == 3)
-      {
-         // The last one is the version, otherwise, continue parsing
+         break;
+      case 3:
+         builder.setGroupId(split[0]);
+         builder.setArtifactId(split[1]);
          builder.setVersion(split[2]);
-      }
-      else
-      {
-         if (split.length > 2)
-         {
-            builder.setPackaging(split[2]);
-         }
-         if (split.length > 3)
-         {
-            builder.setClassifier(split[3]);
-         }
-         if (split.length > 4)
-         {
-            builder.setVersion(split[4]);
-         }
+         break;
+      case 4:
+         builder.setGroupId(split[0]);
+         builder.setArtifactId(split[1]);
+         builder.setPackaging(split[2]);
+         builder.setVersion(split[3]);
+         break;
+      case 5:
+         builder.setGroupId(split[0]);
+         builder.setArtifactId(split[1]);
+         builder.setPackaging(split[2]);
+         builder.setClassifier(split[3]);
+         builder.setVersion(split[4]);
+         break;
+      default:
+         throw new IllegalArgumentException(
+                  "Malformed coordinate (" + coordinates
+                           + "). Should be groupId:artifactId:[packaging]:[classifier]:[version]");
       }
       return builder;
    }
@@ -240,37 +238,42 @@ public class CoordinateBuilder implements Coordinate
    }
 
    /**
-    * Convenience method which should be used to convert a {@link Dependency} object into its id representation, for
+    * Convenience method which should be used to convert a {@link Coordinate} object into its id representation, for
     * example: "groupId:artifactId:::version", "groupId:artifactId:packaging::version" or
     * "groupId:artifactId:packaging:classifier:version"
-    * 
-    * @see {@link Dependency#toCoordinates()}
     */
-   private String toId()
-   {
-      StringBuilder gav = new StringBuilder(getGroupId()).append(":").append(getArtifactId());
-      gav.append(":");
-      if (getPackaging() != null)
-      {
-         gav.append(getPackaging());
-      }
-      gav.append(":");
-      if (getClassifier() != null)
-      {
-         gav.append(getClassifier());
-      }
-      gav.append(":");
-      if (getVersion() != null)
-      {
-         gav.append(getVersion());
-      }
-      return gav.toString();
-   }
-
    @Override
    public String toString()
    {
-      return toId();
+      StringBuilder gav = new StringBuilder(getGroupId()).append(":").append(getArtifactId());
+      if (Strings.isNullOrEmpty(getClassifier())
+               && (Strings.isNullOrEmpty(getPackaging()) || "jar".equalsIgnoreCase(getPackaging())))
+      {
+         gav.append(":");
+         if (getVersion() != null)
+         {
+            gav.append(getVersion());
+         }
+      }
+      else
+      {
+         gav.append(":");
+         if (!Strings.isNullOrEmpty(getPackaging()))
+         {
+            gav.append(getPackaging());
+         }
+         if (!Strings.isNullOrEmpty(getClassifier()))
+         {
+            gav.append(":");
+            gav.append(getClassifier());
+         }
+         gav.append(":");
+         if (getVersion() != null)
+         {
+            gav.append(getVersion());
+         }
+      }
+      return gav.toString();
    }
 
 }

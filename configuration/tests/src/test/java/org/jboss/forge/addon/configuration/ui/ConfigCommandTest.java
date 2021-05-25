@@ -1,7 +1,16 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.configuration.ui;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
@@ -10,18 +19,17 @@ import javax.inject.Inject;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.configuration.Configuration;
+import org.jboss.forge.addon.configuration.Subset;
 import org.jboss.forge.addon.configuration.facets.ConfigurationFacet;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.shell.test.ShellTest;
 import org.jboss.forge.addon.ui.result.Failed;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,27 +38,17 @@ import org.junit.runner.RunWith;
 public class ConfigCommandTest
 {
    @Deployment
-   @Dependencies({
+   @AddonDependencies({
             @AddonDependency(name = "org.jboss.forge.addon:shell-test-harness"),
             @AddonDependency(name = "org.jboss.forge.addon:configuration"),
             @AddonDependency(name = "org.jboss.forge.addon:shell"),
             @AddonDependency(name = "org.jboss.forge.addon:projects"),
             @AddonDependency(name = "org.jboss.forge.addon:maven"),
+            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:configuration"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:shell-test-harness"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:shell")
-               );
-
-      return archive;
+      return ShrinkWrap.create(AddonArchive.class).addBeansXML();
    }
 
    @Inject
@@ -62,6 +60,10 @@ public class ConfigCommandTest
    @Inject
    private ProjectFactory projectFactory;
 
+   @Inject
+   @Subset("subset.subset")
+   private Configuration subSubsetConfiguration;
+
    @Before
    public void setUp() throws Exception
    {
@@ -72,17 +74,18 @@ public class ConfigCommandTest
    public void testConfigList() throws Exception
    {
       addPropsToUserConfig();
-      test.execute("config-list", 5, TimeUnit.SECONDS);
-      Assert.assertThat(test.getStdOut(), containsString("key1=user: [userValue1]"));
-      Assert.assertThat(test.getStdOut(), containsString("key2=user: [userValue2]"));
+      test.execute("config-list", 15, TimeUnit.SECONDS);
+      assertThat(test.getStdOut(), containsString("key1=user: [userValue1]"));
+      assertThat(test.getStdOut(), containsString("key2=user: [userValue2]"));
    }
 
    @Test
    public void testConfigSetProperty() throws Exception
    {
-      Assert.assertFalse(test.execute("config-set --key key1 --value userValue1", 5, TimeUnit.SECONDS) instanceof Failed);
-      Assert.assertFalse(test.execute("config-list", 5, TimeUnit.SECONDS) instanceof Failed);
-      Assert.assertThat(test.getStdOut(), containsString("key1=user: [userValue1]"));
+      assertFalse(test.execute("config-set --key key1 --value userValue1", 15, TimeUnit.SECONDS) instanceof Failed);
+      test.clearScreen();
+      assertFalse(test.execute("config-list", 15, TimeUnit.SECONDS) instanceof Failed);
+      assertThat(test.getStdOut(), containsString("key1=user: [userValue1]"));
    }
 
    @Test
@@ -92,21 +95,21 @@ public class ConfigCommandTest
       Configuration projectConfig = project.getFacet(ConfigurationFacet.class).getConfiguration();
       addPropsToProjectConfig(projectConfig);
       test.getShell().setCurrentResource(project.getRoot());
-      test.execute("config-list", 5, TimeUnit.SECONDS);
-      Assert.assertThat(test.getStdOut(), containsString("key2=project: [projectValue2]"));
-      Assert.assertThat(test.getStdOut(), containsString("key3=project: [projectValue3]"));
+      test.execute("config-list", 15, TimeUnit.SECONDS);
+      assertThat(test.getStdOut(), containsString("key2=project: [projectValue2]"));
+      assertThat(test.getStdOut(), containsString("key3=project: [projectValue3]"));
    }
 
    @Test
    public void testConfigClear() throws Exception
    {
-      Assert.assertFalse(test.execute("config-set --key key1 --value userValue1", 5, TimeUnit.SECONDS) instanceof Failed);
-      Assert.assertFalse(test.execute("config-list", 5, TimeUnit.SECONDS) instanceof Failed);
-      Assert.assertThat(test.getStdOut(), containsString("key1=user: [userValue1]"));
+      assertFalse(test.execute("config-set --key key1 --value userValue1", 15, TimeUnit.SECONDS) instanceof Failed);
+      assertFalse(test.execute("config-list", 15, TimeUnit.SECONDS) instanceof Failed);
+      assertThat(test.getStdOut(), containsString("key1=user: [userValue1]"));
       test.clearScreen();
-      Assert.assertFalse(test.execute("config-clear --key key1", 5, TimeUnit.SECONDS) instanceof Failed);
-      Assert.assertFalse(test.execute("config-list", 5, TimeUnit.SECONDS) instanceof Failed);
-      Assert.assertThat(test.getStdOut(), not(containsString("key1=user: [userValue1]")));
+      assertFalse(test.execute("config-clear --key key1", 15, TimeUnit.SECONDS) instanceof Failed);
+      assertFalse(test.execute("config-list", 15, TimeUnit.SECONDS) instanceof Failed);
+      assertThat(test.getStdOut(), not(containsString("key1=user: [userValue1]")));
    }
 
    @Test
@@ -114,11 +117,11 @@ public class ConfigCommandTest
    {
       Project project = projectFactory.createTempProject();
       test.getShell().setCurrentResource(project.getRoot());
-      test.execute("config-set --key key2 --value projectValue2 --local", 5, TimeUnit.MINUTES);
-      test.execute("config-set --key key3 --value projectValue3 --local", 5, TimeUnit.SECONDS);
-      Assert.assertFalse(test.execute("config-list", 5, TimeUnit.SECONDS) instanceof Failed);
-      Assert.assertThat(test.getStdOut(), containsString("key2=project: [projectValue2]"));
-      Assert.assertThat(test.getStdOut(), containsString("key3=project: [projectValue3]"));
+      test.execute("config-set --key key2 --value projectValue2 --local", 15, TimeUnit.SECONDS);
+      test.execute("config-set --key key3 --value projectValue3 --local", 15, TimeUnit.SECONDS);
+      assertFalse(test.execute("config-list", 15, TimeUnit.SECONDS) instanceof Failed);
+      assertThat(test.getStdOut(), containsString("key2=project: [projectValue2]"));
+      assertThat(test.getStdOut(), containsString("key3=project: [projectValue3]"));
    }
 
    @Test
@@ -129,10 +132,21 @@ public class ConfigCommandTest
       Configuration projectConfig = project.getFacet(ConfigurationFacet.class).getConfiguration();
       addPropsToProjectConfig(projectConfig);
       test.getShell().setCurrentResource(project.getRoot());
-      test.execute("config-list", 5, TimeUnit.SECONDS);
-      Assert.assertThat(test.getStdOut(), containsString("key1=user: [userValue1]"));
-      Assert.assertThat(test.getStdOut(), containsString("key2=user: [userValue2], project: [projectValue2]"));
-      Assert.assertThat(test.getStdOut(), containsString("key3=project: [projectValue3]"));
+      test.execute("config-list", 15, TimeUnit.SECONDS);
+      assertThat(test.getStdOut(), containsString("key1=user: [userValue1]"));
+      assertThat(test.getStdOut(), containsString("key2=user: [userValue2], project: [projectValue2]"));
+      assertThat(test.getStdOut(), containsString("key3=project: [projectValue3]"));
+   }
+
+   @Test
+   public void testSubSubsetConfigurationClearProperty() throws Exception
+   {
+      userConfig.clear();
+      userConfig.setProperty("subset.subset.A", "Value");
+      assertTrue(subSubsetConfiguration.getKeys().hasNext());
+      subSubsetConfiguration.clearProperty("A");
+      assertFalse(subSubsetConfiguration.getKeys().hasNext());
+      assertFalse(userConfig.getKeys().hasNext());
    }
 
    private void addPropsToUserConfig()
@@ -152,5 +166,6 @@ public class ConfigCommandTest
    {
       userConfig.clearProperty("key1");
       userConfig.clearProperty("key2");
+      test.close();
    }
 }

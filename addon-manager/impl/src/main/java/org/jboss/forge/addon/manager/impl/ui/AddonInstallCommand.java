@@ -1,56 +1,42 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.manager.impl.ui;
 
-import java.util.Set;
-import java.util.TreeSet;
-
-import javax.inject.Inject;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.jboss.forge.addon.dependencies.Coordinate;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.Projects;
 import org.jboss.forge.addon.projects.facets.MetadataFacet;
-import org.jboss.forge.addon.ui.command.AbstractUICommand;
+import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
-import org.jboss.forge.addon.ui.context.UIValidationContext;
 import org.jboss.forge.addon.ui.input.InputComponent;
-import org.jboss.forge.addon.ui.input.UICompleter;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.addon.ui.input.UIInput;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
-import org.jboss.forge.addon.ui.validate.UIValidator;
 import org.jboss.forge.furnace.Furnace;
 import org.jboss.forge.furnace.addons.AddonId;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.manager.AddonManager;
 import org.jboss.forge.furnace.manager.spi.AddonDependencyResolver;
-import org.jboss.forge.furnace.versions.SingleVersion;
+import org.jboss.forge.furnace.util.Strings;
 import org.jboss.forge.furnace.versions.Version;
-import org.jboss.forge.furnace.versions.Versions;
 
-public class AddonInstallCommand extends AbstractUICommand implements AddonCommandConstants
+public class AddonInstallCommand extends AbstractProjectCommand implements AddonCommandConstants
 {
-   private static final String FORGE_ADDON_GROUP_ID = "org.jboss.forge.addon:";
-
-   @Inject
-   private AddonManager addonManager;
-
-   @Inject
-   private AddonDependencyResolver resolver;
-
-   @Inject
-   @WithAttributes(label = "Coordinate", description = "The addon's \"groupId:artifactId,version\" coordinate", required = true)
    private UIInput<String> coordinate;
-
-   @Inject
-   private ProjectFactory projectFactory;
-
-   @Inject
-   private Furnace furnace;
 
    @Override
    public Metadata getMetadata(UIContext context)
@@ -65,6 +51,12 @@ public class AddonInstallCommand extends AbstractUICommand implements AddonComma
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      InputComponentFactory factory = builder.getInputComponentFactory();
+      coordinate = factory.createInput("coordinate", String.class).setLabel("Coordinate")
+               .setDescription("The addon's \"groupId:artifactId,version\" coordinate")
+               .setNote("The addon's \"groupId:artifactId,version\" coordinate").setRequired(true);
+      ProjectFactory projectFactory = SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class)
+               .get();
       Project project = Projects.getSelectedProject(projectFactory, builder.getUIContext());
       if (project != null)
       {
@@ -73,111 +65,54 @@ public class AddonInstallCommand extends AbstractUICommand implements AddonComma
          coordinate.setDefaultValue(AddonId.from(c.getGroupId() + ":" + c.getArtifactId(), c.getVersion())
                   .toCoordinates());
       }
-
-      coordinate.setCompleter(new UICompleter<String>()
-      {
-         @Override
-         public Iterable<String> getCompletionProposals(UIContext context, InputComponent<?, String> input, String value)
+      List<String> defaultCoords = Arrays.asList(CoordinateUtils.FORGE_ADDON_GROUP_ID);
+      coordinate.setCompleter((UIContext context, InputComponent<?, String> input,
+               String value) -> {
+         Iterable<String> items = Collections.emptySet();
+         if (Strings.isNullOrEmpty(value))
          {
-            Set<String> items = new TreeSet<String>();
-            items.add("org.jboss.forge.addon:");
-            return items;
+            items = defaultCoords;
          }
-      });
-
-      coordinate.addValidator(new UIValidator()
-      {
-         @Override
-         public void validate(UIValidationContext context)
-         {
-            String coordinate = (String) context.getCurrentInputComponent().getValue();
-            try
-            {
-               resolveCoordinate(coordinate);
-            }
-            catch (IllegalArgumentException e)
-            {
-               context.addValidationError(context.getCurrentInputComponent(), "\"" + coordinate
-                        + "\" is not a valid Addon coordinate");
-            }
-         }
+         return items;
       });
 
       builder.add(coordinate);
+
    }
 
    @Override
    public Result execute(UIExecutionContext context)
    {
-      AddonId addonId = resolveCoordinate(coordinate.getValue());
+      Furnace furnace = SimpleContainer.getFurnace(getClass().getClassLoader());
+      AddonManager addonManager = SimpleContainer.getServices(getClass().getClassLoader(), AddonManager.class).get();
+      AddonDependencyResolver resolver = SimpleContainer
+               .getServices(getClass().getClassLoader(), AddonDependencyResolver.class).get();
+      Version version = furnace.getVersion();
+      AddonId addonId = CoordinateUtils.resolveCoordinate(coordinate.getValue(), version, resolver);
       try
       {
          addonManager.install(addonId).perform();
+         // Invalidate project cache
+         getProjectFactory().invalidateCaches();
          return Results.success("Addon " + addonId.toCoordinates() + " was installed successfully.");
       }
       catch (Throwable t)
       {
-         return Results.fail("Addon " + addonId.toCoordinates() + " could not be installed.", t);
+         return Results.fail(
+                  "Addon " + addonId.toCoordinates() + " could not be installed: " + t.getCause().getMessage(), t);
       }
    }
 
-   // TODO this method needs to be abstracted into a utility
-   private AddonId resolveCoordinate(String addonCoordinates) throws IllegalArgumentException
+   @Override
+   protected boolean isProjectRequired()
    {
-      Version runtimeAPIVersion = furnace.getVersion();
-      AddonId addon;
-      // This allows forge --install maven
-      if (addonCoordinates.contains(","))
-      {
-         if (addonCoordinates.contains(":"))
-         {
-            addon = AddonId.fromCoordinates(addonCoordinates);
-         }
-         else
-         {
-            addon = AddonId.fromCoordinates(FORGE_ADDON_GROUP_ID + addonCoordinates);
-         }
-      }
-      else
-      {
-         AddonId[] versions;
-         String coordinate;
-         if (addonCoordinates.contains(":"))
-         {
-            coordinate = addonCoordinates;
-            versions = resolver.resolveVersions(addonCoordinates).get();
-         }
-         else
-         {
-            coordinate = FORGE_ADDON_GROUP_ID + addonCoordinates;
-            versions = resolver.resolveVersions(coordinate).get();
-         }
-
-         if (versions.length == 0)
-         {
-            throw new IllegalArgumentException("No Artifact version found for " + coordinate);
-         }
-         else
-         {
-            AddonId selected = null;
-            for (int i = versions.length - 1; selected == null && i >= 0; i--)
-            {
-               String apiVersion = resolver.resolveAPIVersion(versions[i]).get();
-               if (apiVersion != null
-                        && Versions.isApiCompatible(runtimeAPIVersion, new SingleVersion(apiVersion)))
-               {
-                  selected = versions[i];
-               }
-            }
-            if (selected == null)
-            {
-               throw new IllegalArgumentException("No compatible addon API version found for " + coordinate
-                        + " for API " + runtimeAPIVersion);
-            }
-
-            addon = selected;
-         }
-      }
-      return addon;
+      return false;
    }
+
+   @Override
+   protected ProjectFactory getProjectFactory()
+   {
+      return SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class).get();
+   }
+
 }

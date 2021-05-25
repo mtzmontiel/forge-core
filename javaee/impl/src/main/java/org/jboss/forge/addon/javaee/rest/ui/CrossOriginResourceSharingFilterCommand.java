@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.rest.ui;
 
 import java.util.Arrays;
@@ -15,25 +14,16 @@ import javax.ws.rs.HttpMethod;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
-import javax.ws.rs.container.PreMatching;
 import javax.ws.rs.ext.Provider;
 
-import org.jboss.forge.addon.javaee.rest.RestFacet;
-import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
-import org.jboss.forge.addon.parser.java.ui.AbstractJavaSourceCommand;
 import org.jboss.forge.addon.projects.Project;
-import org.jboss.forge.addon.ui.command.PrerequisiteCommandsProvider;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.input.UIInputMany;
 import org.jboss.forge.addon.ui.input.UISelectMany;
-import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
 import org.jboss.forge.addon.ui.metadata.WithAttributes;
-import org.jboss.forge.addon.ui.result.NavigationResult;
-import org.jboss.forge.addon.ui.result.navigation.NavigationResultBuilder;
-import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
 import org.jboss.forge.furnace.util.Lists;
 import org.jboss.forge.furnace.util.OperatingSystemUtils;
@@ -47,8 +37,7 @@ import org.jboss.forge.roaster.model.source.MethodSource;
  * @see https://issues.jboss.org/browse/FORGE-1929
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
-public class CrossOriginResourceSharingFilterCommand extends AbstractJavaSourceCommand<JavaClassSource> implements
-         PrerequisiteCommandsProvider
+public class CrossOriginResourceSharingFilterCommand extends AbstractRestNewCommand<JavaClassSource>
 {
 
    @Inject
@@ -69,12 +58,14 @@ public class CrossOriginResourceSharingFilterCommand extends AbstractJavaSourceC
 
    // @Inject
    // @WithAttributes(label = "Access-Control-Expose-Headers", description =
-   // "The Access-Control-Expose-Headers header indicates which headers are safe to expose to the API of a CORS API specification.")
+   // "The Access-Control-Expose-Headers header indicates which headers are safe to expose to the API of a CORS API
+   // specification.")
    // private UIInputMany<String> accessControlExposeHeaders;
    //
    // @Inject
    // @WithAttributes(label = "Access-Control-Max-Age", defaultValue = "151200", description =
-   // "The Access-Control-Max-Age header indicates how long the results of a preflight request can be cached in a preflight result cache.")
+   // "The Access-Control-Max-Age header indicates how long the results of a preflight request can be cached in a
+   // preflight result cache.")
    // private UIInput<Integer> accessControlMaxAge;
    //
    // @Inject
@@ -84,12 +75,14 @@ public class CrossOriginResourceSharingFilterCommand extends AbstractJavaSourceC
    //
    // @Inject
    // @WithAttributes(label = "Access-Control-Request-Method", description =
-   // "The Access-Control-Request-Method header indicates which method will be used in the actual request as part of the preflight request")
+   // "The Access-Control-Request-Method header indicates which method will be used in the actual request as part of the
+   // preflight request")
    // private UIInput<String> accessControlRequestMethod;
    //
    // @Inject
    // @WithAttributes(label = "Access-Control-Request-Headers", description =
-   // "The Access-Control-Request-Headers header indicates which headers will be used in the actual request as part of the preflight request")
+   // "The Access-Control-Request-Headers header indicates which headers will be used in the actual request as part of
+   // the preflight request")
    // private UIInputMany<String> accessControlRequestHeaders;
 
    @Override
@@ -108,11 +101,10 @@ public class CrossOriginResourceSharingFilterCommand extends AbstractJavaSourceC
    }
 
    @Override
-   public UICommandMetadata getMetadata(UIContext context)
+   public Metadata getMetadata(UIContext context)
    {
       return Metadata.from(super.getMetadata(context), getClass()).name("REST: New " + getType())
-               .description("Generate a " + getType())
-               .category(Categories.create("Java EE", "JAX-RS"));
+               .description("Generate a " + getType());
    }
 
    @Override
@@ -128,29 +120,24 @@ public class CrossOriginResourceSharingFilterCommand extends AbstractJavaSourceC
    }
 
    @Override
-   protected String calculateDefaultPackage(UIContext context)
-   {
-      Project project = getSelectedProject(context);
-      return project.getFacet(JavaSourceFacet.class).getBasePackage() + ".rest";
-   }
-
-   @Override
    public JavaClassSource decorateSource(UIExecutionContext context, Project project, JavaClassSource source)
             throws Exception
    {
       source.addAnnotation(Provider.class);
-      source.addAnnotation(PreMatching.class);
       source.addInterface(ContainerResponseFilter.class);
       MethodSource<JavaClassSource> method = source.addMethod().setName("filter").setPublic().setReturnTypeVoid();
       method.addAnnotation(Override.class);
-      // FIXME java.lang.Override shouldn't be imported
-      source.removeImport(Override.class);
       method.addParameter(ContainerRequestContext.class, "request");
       method.addParameter(ContainerResponseContext.class, "response");
       StringBuilder body = new StringBuilder();
       {
          body.append("response.getHeaders().putSingle(\"Access-Control-Allow-Origin\",\"").append(
                   accessControlAllowOrigin.getValue()).append("\");");
+      }
+      body.append(OperatingSystemUtils.getLineSeparator());
+      {
+         body.append("response.getHeaders().putSingle(\"Access-Control-Expose-Headers\",\"").append("Location")
+                  .append("\");");
       }
       body.append(OperatingSystemUtils.getLineSeparator());
       {
@@ -173,20 +160,5 @@ public class CrossOriginResourceSharingFilterCommand extends AbstractJavaSourceC
       }
       method.setBody(body.toString());
       return source;
-   }
-
-   @Override
-   public NavigationResult getPrerequisiteCommands(UIContext context)
-   {
-      NavigationResultBuilder builder = NavigationResultBuilder.create();
-      Project project = getSelectedProject(context);
-      if (project != null)
-      {
-         if (!project.hasFacet(RestFacet.class))
-         {
-            builder.add(RestSetupWizard.class);
-         }
-      }
-      return builder.build();
    }
 }

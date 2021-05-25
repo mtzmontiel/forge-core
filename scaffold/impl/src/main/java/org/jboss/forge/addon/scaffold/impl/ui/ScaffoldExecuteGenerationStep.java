@@ -1,10 +1,14 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.scaffold.impl.ui;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-
-import javax.inject.Inject;
 
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
@@ -24,13 +28,10 @@ import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.util.Metadata;
 import org.jboss.forge.addon.ui.wizard.UIWizardStep;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 
 public class ScaffoldExecuteGenerationStep extends AbstractProjectCommand implements UIWizardStep
 {
-
-   @Inject
-   private ProjectFactory factory;
-
    @Override
    public UICommandMetadata getMetadata(UIContext context)
    {
@@ -63,15 +64,16 @@ public class ScaffoldExecuteGenerationStep extends AbstractProjectCommand implem
       Map<Object, Object> attributeMap = context.getUIContext().getAttributeMap();
       ScaffoldProvider selectedProvider = (ScaffoldProvider) attributeMap.get(ScaffoldProvider.class);
       Object requiresScaffoldSetup = attributeMap.get(ScaffoldGenerateCommandImpl.REQUIRES_SCAFFOLD_SETUP);
-      if(requiresScaffoldSetup != null && (boolean) requiresScaffoldSetup == true)
+      if (requiresScaffoldSetup != null && (boolean) requiresScaffoldSetup == true)
       {
-          ScaffoldSetupContext setupContext = (ScaffoldSetupContext) attributeMap.get(ScaffoldSetupContext.class);
-          selectedProvider.setup(setupContext);
+         ScaffoldSetupContext setupContext = (ScaffoldSetupContext) attributeMap.get(ScaffoldSetupContext.class);
+         selectedProvider.setup(setupContext);
+         getProjectFactory().invalidateCaches();
       }
       ResourceCollection resourceCollection = (ResourceCollection) attributeMap.get(ResourceCollection.class);
       // Ensure that the resource collection is instantiated. Prevents a null check in the scaffold provider.
       Collection<Resource<?>> resources = resourceCollection != null ? resourceCollection.getResources()
-               : Collections.EMPTY_SET;
+               : Collections.<Resource<?>> emptySet();
       selectedProvider.generateFrom(populateGenerationContext(context.getUIContext(), resources));
       return Results.success("Scaffold was generated successfully.");
    }
@@ -91,7 +93,7 @@ public class ScaffoldExecuteGenerationStep extends AbstractProjectCommand implem
    @Override
    protected ProjectFactory getProjectFactory()
    {
-      return factory;
+      return SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class).get();
    }
 
    private ScaffoldGenerationContext populateGenerationContext(UIContext context, Collection<Resource<?>> resources)
@@ -100,6 +102,7 @@ public class ScaffoldExecuteGenerationStep extends AbstractProjectCommand implem
       ScaffoldGenerationContext generationContext = (ScaffoldGenerationContext) attributeMap
                .get(ScaffoldGenerationContext.class);
       generationContext.setResources(resources);
+      generationContext.setProject(getSelectedProject(context));
       return generationContext;
    }
 

@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.faces;
 
 import java.util.Arrays;
@@ -24,24 +23,25 @@ import org.jboss.forge.furnace.versions.Version;
 import org.jboss.shrinkwrap.descriptor.api.facesconfig20.WebFacesConfigDescriptor;
 
 /**
+ * Implementation of the {@link FacesFacet_2_0} interface
  * 
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
 public class FacesFacetImpl_2_0 extends AbstractFacesFacetImpl<WebFacesConfigDescriptor> implements FacesFacet_2_0
 {
+   public static final Dependency JAVAEE6_FACES = DependencyBuilder
+            .create("org.jboss.spec.javax.faces:jboss-jsf-api_2.0_spec:1.0.0.Final").setScopeType("provided");
+
    @Inject
    public FacesFacetImpl_2_0(DependencyInstaller installer)
    {
       super(installer);
    }
 
-   public static final Dependency JAVAEE6_FACES = DependencyBuilder
-            .create("org.jboss.spec.javax.faces:jboss-jsf-api_2.0_spec").setScopeType("provided");
-
    @Override
    public Version getSpecVersion()
    {
-      return new SingleVersion("2.0");
+      return SingleVersion.valueOf("2.0");
    }
 
    @Override

@@ -1,13 +1,14 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.addon.validation;
 
 import java.lang.reflect.Type;
+
+import javax.enterprise.inject.Vetoed;
 
 import org.hibernate.validator.spi.valuehandling.ValidatedValueUnwrapper;
 import org.jboss.forge.addon.ui.input.InputComponent;
@@ -20,6 +21,7 @@ import com.fasterxml.classmate.TypeResolver;
  * 
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
+@Vetoed
 class InputComponentValueUnwrapper extends ValidatedValueUnwrapper<InputComponent<?, ?>>
 {
    private final TypeResolver typeResolver = new TypeResolver();

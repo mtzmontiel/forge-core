@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.facets;
 
 import java.util.ArrayList;
@@ -106,5 +112,15 @@ public class FacetedTest
 
       Assert.assertTrue(faceted.supports(new MockFacet(faceted)));
       Assert.assertFalse(faceted.supports(new MockFacet2(faceted)));
+   }
+
+   @Test
+   public void testOptional()
+   {
+      MockFaceted faceted = new MockFaceted();
+      MockFacet facet = new MockFacet(faceted);
+      Assert.assertFalse(faceted.getFacetAsOptional(MockFacet.class).isPresent());
+      faceted.install(facet);
+      Assert.assertTrue(faceted.getFacetAsOptional(MockFacet.class).isPresent());
    }
 }

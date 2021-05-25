@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.jpa.ui.setup;
 
 import java.util.Map;
@@ -12,7 +11,6 @@ import java.util.concurrent.Callable;
 
 import javax.inject.Inject;
 
-import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.javaee.jpa.DatabaseType;
 import org.jboss.forge.addon.javaee.jpa.JPADataSource;
 import org.jboss.forge.addon.javaee.jpa.PersistenceContainer;
@@ -132,24 +130,10 @@ public class JPASetupConnectionStep extends AbstractJavaEECommand implements UIW
       }
       if (uiContext.getProvider().isGUI())
       {
-         schemaGenerationType.setItemLabelConverter(new Converter<SchemaGenerationType, String>()
-         {
-            @Override
-            public String convert(SchemaGenerationType source)
-            {
-               return source != null ? source.getLabel() : null;
-            }
-         });
+         schemaGenerationType.setItemLabelConverter(source -> source.getLabel());
       }
       schemaGenerationType.setDefaultValue(SchemaGenerationType.DROP_CREATE);
-      schemaGenerationType.setDescription(new Callable<String>()
-      {
-         @Override
-         public String call() throws Exception
-         {
-            return schemaGenerationType.getValue().getDescription();
-         }
-      });
+      schemaGenerationType.setDescription(() -> schemaGenerationType.getValue().getDescription());
       builder.add(schemaGenerationType);
    }
 
@@ -267,7 +251,7 @@ public class JPASetupConnectionStep extends AbstractJavaEECommand implements UIW
    @Override
    protected boolean isProjectRequired()
    {
-      return false;
+      return true;
    }
 
 }

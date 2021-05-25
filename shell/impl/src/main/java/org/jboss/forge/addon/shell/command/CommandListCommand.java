@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -21,74 +21,73 @@ import org.jboss.aesh.terminal.TerminalSize;
 import org.jboss.aesh.terminal.TerminalString;
 import org.jboss.forge.addon.shell.Shell;
 import org.jboss.forge.addon.shell.ui.AbstractShellCommand;
-import org.jboss.forge.addon.shell.util.CommandControllerComparator;
-import org.jboss.forge.addon.ui.UIRuntime;
 import org.jboss.forge.addon.ui.command.CommandFactory;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
-import org.jboss.forge.addon.ui.controller.CommandController;
-import org.jboss.forge.addon.ui.controller.CommandControllerFactory;
-import org.jboss.forge.addon.ui.input.UIPrompt;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
 import org.jboss.forge.addon.ui.output.UIOutput;
-import org.jboss.forge.addon.ui.progress.DefaultUIProgressMonitor;
-import org.jboss.forge.addon.ui.progress.UIProgressMonitor;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.util.Metadata;
+import org.jboss.forge.furnace.util.OperatingSystemUtils;
 
 /**
+ * Lists all the available commands
+ * 
  * @author <a href="mailto:stale.pedersen@jboss.org">Ståle W. Pedersen</a>
+ * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
 public class CommandListCommand extends AbstractShellCommand
 {
-   private final CommandFactory commandFactory;
-   private final CommandControllerFactory factory;
-
    @Inject
-   public CommandListCommand(CommandFactory commandFactory, CommandControllerFactory factory)
-   {
-      this.commandFactory = commandFactory;
-      this.factory = factory;
-   }
+   private CommandFactory commandFactory;
+   private static final String CMD_LIST_HELP_DESCRIPTION = "List all available commands. Each line starts with the category to which a command belongs followed by the name and the command description."
+           + OperatingSystemUtils.getLineSeparator()
+           + "When a command is not available within the context of the shell where it is executed, then the name of the command is displayed in red otherwise in green."
+           + OperatingSystemUtils.getLineSeparator()
+           + "By example, it is not possible to add a module or fraction using the command 'wildfly-swarm-add-fraction' if the Wildfly Swarm project doesn't exist !";
 
    @Override
    public UICommandMetadata getMetadata(UIContext context)
    {
-      return Metadata.forCommand(getClass()).name("command-list").description("List all available commands.");
+      return Metadata.forCommand(getClass())
+                     .name("command-list")
+                     .description("List all available commands.")
+                     .longDescription(CMD_LIST_HELP_DESCRIPTION);
    }
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      // No inputs needed
    }
 
    @Override
    public Result execute(UIExecutionContext context) throws Exception
    {
-      Shell shell = (Shell) context.getUIContext().getProvider();
+      UIContext uiContext = context.getUIContext();
+      Shell shell = (Shell) uiContext.getProvider();
       TerminalSize terminalSize = shell.getConsole().getShell().getSize();
       List<String> display = new ArrayList<>();
-
-      Set<CommandController> controllers = new TreeSet<>(new CommandControllerComparator());
+      Set<CommandInfo> commandInfos = new TreeSet<>();
       for (UICommand command : commandFactory.getCommands())
       {
-         controllers.add(getCommandController(context, command));
+         UICommandMetadata metadata = command.getMetadata(uiContext);
+         String name = commandFactory.getCommandName(uiContext, command);
+         boolean enabled = command.isEnabled(uiContext);
+         commandInfos.add(new CommandInfo(metadata.getCategory().toString(), name, metadata.getDescription(), enabled));
       }
-
-      for (CommandController controller : controllers)
+      for (CommandInfo command : commandInfos)
       {
-         String name = commandFactory.getCommandName(context.getUIContext(), controller.getCommand());
-         UICommandMetadata metadata = controller.getMetadata();
-         display.add(metadata.getCategory()
+         display.add(command.category
                   + " > "
-                  + new TerminalString(name, new TerminalColor(controller.isEnabled() ? Color.CYAN : Color.RED,
-                           Color.DEFAULT)).toString() + " - " + metadata.getDescription());
+                  + new TerminalString(command.name, new TerminalColor(command.enabled ? Color.CYAN : Color.RED,
+                           Color.DEFAULT)).toString()
+                  + " - " + command.description);
       }
-
-      UIOutput output = context.getUIContext().getProvider().getOutput();
+      UIOutput output = uiContext.getProvider().getOutput();
       PrintStream out = output.out();
       out.println(Parser.formatDisplayList(display.toArray(new String[display.size()]),
                terminalSize.getHeight(), terminalSize.getWidth()));
@@ -96,21 +95,69 @@ public class CommandListCommand extends AbstractShellCommand
       return Results.success();
    }
 
-   private CommandController getCommandController(UIExecutionContext context, UICommand command)
+   private static class CommandInfo implements Comparable<CommandInfo>
    {
-      return factory.createController(context.getUIContext(), new UIRuntime()
-      {
-         @Override
-         public UIProgressMonitor createProgressMonitor(UIContext context)
-         {
-            return new DefaultUIProgressMonitor();
-         }
+      final String category;
+      final String name;
+      final String description;
+      final boolean enabled;
 
-         @Override
-         public UIPrompt createPrompt(UIContext context)
+      CommandInfo(String category, String name, String description, boolean enabled)
+      {
+         super();
+         this.category = category;
+         this.name = name;
+         this.description = description;
+         this.enabled = enabled;
+      }
+
+      @Override
+      public int compareTo(CommandInfo o)
+      {
+         int compareTo = this.category.compareTo(o.category);
+         if (compareTo == 0)
          {
-            return null;
+            compareTo = this.name.compareTo(o.name);
          }
-      }, command);
+         return compareTo;
+      }
+
+      @Override
+      public int hashCode()
+      {
+         final int prime = 31;
+         int result = 1;
+         result = prime * result + ((category == null) ? 0 : category.hashCode());
+         result = prime * result + ((name == null) ? 0 : name.hashCode());
+         return result;
+      }
+
+      @Override
+      public boolean equals(Object obj)
+      {
+         if (this == obj)
+            return true;
+         if (obj == null)
+            return false;
+         if (getClass() != obj.getClass())
+            return false;
+         CommandInfo other = (CommandInfo) obj;
+         if (category == null)
+         {
+            if (other.category != null)
+               return false;
+         }
+         else if (!category.equals(other.category))
+            return false;
+         if (name == null)
+         {
+            if (other.name != null)
+               return false;
+         }
+         else if (!name.equals(other.name))
+            return false;
+         return true;
+      }
+
    }
 }

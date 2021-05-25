@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -21,5 +21,10 @@ public interface JavaEEFacet extends ProjectFacet
    /**
     * Return the {@link Version} of the specification for which this facet represents.
     */
-   public Version getSpecVersion();
+   Version getSpecVersion();
+
+   /**
+    * Return the specification name for which this facet represents.
+    */
+   String getSpecName();
 }

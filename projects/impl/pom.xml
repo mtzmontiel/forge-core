@@ -3,7 +3,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>projects-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
    </parent>
    <artifactId>projects-impl</artifactId>
    <name>Forge - Projects Impl</name>
@@ -15,6 +15,7 @@
       <dependency>
          <groupId>org.jboss.forge.furnace</groupId>
          <artifactId>furnace-proxy</artifactId>
+         <scope>provided</scope>
       </dependency>
 
       <dependency>
@@ -57,7 +58,7 @@
       <!-- Furnace Container -->
       <dependency>
          <groupId>org.jboss.forge.furnace.container</groupId>
-         <artifactId>cdi</artifactId>
+         <artifactId>simple</artifactId>
          <classifier>forge-addon</classifier>
          <scope>provided</scope>
       </dependency>

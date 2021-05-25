@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -8,8 +8,6 @@ package org.jboss.forge.addon.projects.impl;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.inject.Singleton;
 
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.spi.ProjectCache;
@@ -21,7 +19,6 @@ import org.jboss.forge.furnace.util.Assert;
  *
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@Singleton
 public class InMemoryProjectCache implements ProjectCache
 {
    private final Map<String, Project> projects = new ConcurrentHashMap<>();

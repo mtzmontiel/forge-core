@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.manager;
 
 /*
@@ -13,23 +19,17 @@ import java.net.URL;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.inject.Inject;
-
-import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
 import org.jboss.forge.furnace.addons.Addon;
 import org.jboss.forge.furnace.addons.AddonId;
 import org.jboss.forge.furnace.addons.AddonRegistry;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.manager.AddonManager;
 import org.jboss.forge.furnace.manager.maven.MavenContainer;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
 import org.jboss.forge.furnace.util.Addons;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,11 +42,16 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class AddonManagerTest
 {
+   private static String previousUserSettings;
+   private static String previousLocalRepository;
+
    @BeforeClass
    public static void setRemoteRepository() throws IOException
    {
-      System.setProperty(MavenContainer.ALT_USER_SETTINGS_XML_LOCATION, getAbsolutePath("profiles/settings.xml"));
-      System.setProperty(MavenContainer.ALT_LOCAL_REPOSITORY_LOCATION, "target/the-other-repository");
+      previousUserSettings = System.setProperty(MavenContainer.ALT_USER_SETTINGS_XML_LOCATION,
+               getAbsolutePath("profiles/settings.xml"));
+      previousLocalRepository = System.setProperty(MavenContainer.ALT_LOCAL_REPOSITORY_LOCATION,
+               "target/the-other-repository");
    }
 
    private static String getAbsolutePath(String path) throws FileNotFoundException
@@ -60,34 +65,33 @@ public class AddonManagerTest
    @AfterClass
    public static void clearRemoteRepository()
    {
-      System.clearProperty(MavenContainer.ALT_USER_SETTINGS_XML_LOCATION);
-      System.clearProperty(MavenContainer.ALT_LOCAL_REPOSITORY_LOCATION);
+      if (previousUserSettings == null)
+      {
+         System.clearProperty(MavenContainer.ALT_USER_SETTINGS_XML_LOCATION);
+      }
+      else
+      {
+         System.setProperty(MavenContainer.ALT_USER_SETTINGS_XML_LOCATION, previousUserSettings);
+      }
+      if (previousLocalRepository == null)
+      {
+         System.clearProperty(MavenContainer.ALT_LOCAL_REPOSITORY_LOCATION);
+      }
+      else
+      {
+         System.setProperty(MavenContainer.ALT_LOCAL_REPOSITORY_LOCATION, previousUserSettings);
+      }
    }
 
-   @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:addon-manager"),
-            @AddonDependency(name = "org.jboss.forge.addon:maven")
-   })
-   public static ForgeArchive getDeployment()
-   {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:addon-manager")
-               );
-
-      return archive;
-   }
-
-   @Inject
    private AddonRegistry registry;
-
-   @Inject
    private AddonManager addonManager;
+
+   @Before
+   public void setUp()
+   {
+      registry = SimpleContainer.getFurnace(getClass().getClassLoader()).getAddonRegistry();
+      addonManager = registry.getServices(AddonManager.class).get();
+   }
 
    @Test
    public void testInstallingAddonWithNoDependency() throws InterruptedException, TimeoutException

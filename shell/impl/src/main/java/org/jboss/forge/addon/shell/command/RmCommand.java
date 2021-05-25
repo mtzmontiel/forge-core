@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.command;
 
 import java.util.List;
@@ -13,8 +12,6 @@ import javax.inject.Inject;
 
 import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.resource.Resource;
-import org.jboss.forge.addon.resource.ResourceFactory;
-import org.jboss.forge.addon.resource.util.ResourcePathResolver;
 import org.jboss.forge.addon.shell.ui.AbstractShellCommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
@@ -37,10 +34,6 @@ import org.jboss.forge.addon.ui.util.Metadata;
  */
 public class RmCommand extends AbstractShellCommand
 {
-
-   @Inject
-   ResourceFactory resourceFactory;
-
    @Inject
    @WithAttributes(label = "Arguments", type = InputType.FILE_PICKER, required = true)
    private UIInputMany<String> arguments;
@@ -72,7 +65,7 @@ public class RmCommand extends AbstractShellCommand
       Resource<?> currentResource = (Resource<?>) context.getUIContext().getInitialSelection().get();
       for (String file : arguments.getValue())
       {
-         List<Resource<?>> resources = new ResourcePathResolver(resourceFactory, currentResource, file).resolve();
+         List<Resource<?>> resources = currentResource.resolveChildren(file);
          for (Resource<?> resource : resources)
          {
             if (!resource.exists())
@@ -88,7 +81,7 @@ public class RmCommand extends AbstractShellCommand
       UIOutput output = context.getUIContext().getProvider().getOutput();
       for (String file : arguments.getValue())
       {
-         List<Resource<?>> resources = new ResourcePathResolver(resourceFactory, currentResource, file).resolve();
+         List<Resource<?>> resources = currentResource.resolveChildren(file);
          for (Resource<?> resource : resources)
          {
             if ((resource instanceof DirectoryResource))

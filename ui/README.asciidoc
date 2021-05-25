@@ -207,7 +207,7 @@ public class MyInitialPage extends AbstractUICommand implements UIWizard {
    
    @Override
    public NavigationResult next(UINavigationContext context) throws Exception {
-      context.getAttributeMap().put("firstName", firstName.getValue());
+      context.getUIContext().getAttributeMap().put("firstName", firstName.getValue());
       return Results.navigateTo(MyNextStep.class);
    }
 
@@ -343,4 +343,106 @@ public class MyCommand extends AbstractProjectCommand implements PrerequisiteCom
 
 NOTE: The PrerequisiteCommandsProvider feature is implemented using a UICommandTransformer
 
+=== @Inject UIContextProvider for classes that need `UIContext`
+
+We highly recommend that operations involving `UIContext` start from UICommands. 
+However, some services might require the current `UIContext` and changing the API may not be possible.
+
+[source,java]
+----
+@Inject
+private UIContextProvider contextProvider;
+...
+// This may be null if no UI interaction started 
+UIContext context = contextProvider.getUIContext();
+----
+
+[TIP] 
+====
+If your addon uses a container that does not support "@Inject" annotations, services such as the `UIContextProvider` may also be 
+accessed via the `AddonRegistry`:
+
+----
+AddonRegistry registry = ...
+Imported<UIContextProvider> imported = registry.getServices(UIContextProvider.class);
+UIContextProvider factory = imported.get();
+----
+==== 
+
+=== Specializing inputs
+
+The UI addon provides an easy way to reuse the settings for the existing inputs by providing decorators for each `InputComponent` type:
+
+[source,java]
+----
+public interface TargetPackage extends UIInput<String> 
+{
+}
+----
+
+Implement this interface by doing: 
+
+[source,java]
+----
+public class TargetPackageImpl extends AbstractUIInputDecorator<String> implements TargetPackage
+{
+   @Inject
+   @WithAttributes(label = "Target Package", type = InputType.JAVA_PACKAGE_PICKER)
+   private UIInput<String> targetPackage;
+
+   @Override
+   protected UIInput<String> createDelegate()
+   {
+      return targetPackage;
+   }
+}
+
+----
+
+And in the command class: 
+
+[source,java]
+----
+@Inject
+private TargetPackage targetPackage;
+...
+
+public void initializeUI(UIBuilder builder) 
+{
+	builder.add(targetPackage);  
+}
+----
+
+=== NavigationResultTransformer feature
+
+If you need to add a new step to an existing command, you should implement a `NavigationResultTransformer`. Forge will automatically pick any published `NavigationResultTransformer` service.
+
+[source,java]
+----
+import org.jboss.forge.addon.javaee.jpa.ui.setup.JPASetupWizard;
+import org.jboss.forge.addon.ui.context.UINavigationContext;
+import org.jboss.forge.addon.ui.result.NavigationResult;
+import org.jboss.forge.addon.ui.result.navigation.NavigationResultBuilder;
+import org.jboss.forge.addon.ui.result.navigation.NavigationResultTransformer;
+
+public class JPANavigationResultTransformer implements NavigationResultTransformer {
+
+	@Override
+	public boolean handles(UINavigationContext context) {
+		// Is this command the 'JPA: Setup' wizard? 
+		return context.getCurrentCommand() instanceof JPASetupWizard;
+	}
+
+	@Override
+	public NavigationResult transform(UINavigationContext context, NavigationResult currentFlow) {
+		// Add my new wizard step to the end of the flow
+		return NavigationResultBuilder.create(currentFlow).add(MyCustomWizardStep.class).build();
+	}
+
+	@Override
+	public int priority() {
+		return 100;
+	}
+}
+----
 

@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.mock;
 
 import org.jboss.forge.addon.ui.context.AbstractUIContext;
@@ -19,10 +18,12 @@ import org.junit.Assert;
 public class MockUIContext extends AbstractUIContext
 {
    private final UISelection<?> selection;
+   private MockUIProvider provider;
 
    public MockUIContext()
    {
       this(Selections.emptySelection());
+      this.provider = new MockUIProvider(true);
    }
 
    public MockUIContext(UISelection<?> selection)
@@ -36,5 +37,11 @@ public class MockUIContext extends AbstractUIContext
    public <SELECTIONTYPE> UISelection<SELECTIONTYPE> getInitialSelection()
    {
       return (UISelection<SELECTIONTYPE>) selection;
+   }
+
+   @Override
+   public MockUIProvider getProvider()
+   {
+      return provider;
    }
 }

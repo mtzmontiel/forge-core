@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -26,14 +26,14 @@ import org.jboss.forge.furnace.spi.ListenerRegistration;
  */
 public abstract class AbstractUIContext implements UIContext
 {
-   private final Map<Object, Object> map;
+   private final Map<Object, Object> map = createAttributeMap();
    private UISelection<?> selection;
    private final Set<CommandExecutionListener> listeners = new LinkedHashSet<>();
 
-   public AbstractUIContext()
+   protected Map<Object, Object> createAttributeMap()
    {
       // Initializing with System properties by default
-      map = new HashMap<>(System.getProperties());
+      return new HashMap<>(System.getProperties());
    }
 
    @Override

@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.ejb.ui;
 
 import java.io.FileNotFoundException;
@@ -12,21 +11,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import javax.ejb.MessageDriven;
-import javax.ejb.Singleton;
-import javax.ejb.Stateful;
-import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
 
-import org.jboss.forge.addon.convert.Converter;
+import org.jboss.forge.addon.javaee.ejb.EJBFacet;
+import org.jboss.forge.addon.javaee.ejb.EJBOperations;
 import org.jboss.forge.addon.javaee.ui.AbstractJavaEECommand;
 import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
 import org.jboss.forge.addon.parser.java.resources.JavaMethodResource;
 import org.jboss.forge.addon.parser.java.resources.JavaResource;
 import org.jboss.forge.addon.parser.java.resources.JavaResourceVisitor;
 import org.jboss.forge.addon.projects.Project;
+import org.jboss.forge.addon.projects.stacks.annotations.StackConstraint;
 import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.visit.VisitContext;
@@ -50,6 +47,7 @@ import org.jboss.forge.roaster.model.source.JavaClassSource;
 import org.jboss.forge.roaster.model.source.JavaSource;
 import org.jboss.forge.roaster.model.source.MethodSource;
 
+@StackConstraint(EJBFacet.class)
 public class EJBSetMethodTransactionAttributeCommand extends AbstractJavaEECommand
 {
    @Inject
@@ -63,6 +61,9 @@ public class EJBSetMethodTransactionAttributeCommand extends AbstractJavaEEComma
    @Inject
    @WithAttributes(label = "Transaction Type", description = "The type of the transaction", required = true)
    private UISelectOne<TransactionAttributeType> type;
+
+   @Inject
+   private EJBOperations ejbOperations;
 
    @Override
    public Metadata getMetadata(UIContext context)
@@ -82,14 +83,7 @@ public class EJBSetMethodTransactionAttributeCommand extends AbstractJavaEEComma
 
    private void setupMethods(UIContext uiContext)
    {
-      method.setEnabled(new Callable<Boolean>()
-      {
-         @Override
-         public Boolean call() throws Exception
-         {
-            return targetEjb.hasValue();
-         }
-      });
+      method.setEnabled(() -> targetEjb.hasValue());
       method.setValueChoices(new Callable<Iterable<JavaMethodResource>>()
       {
          @Override
@@ -113,14 +107,7 @@ public class EJBSetMethodTransactionAttributeCommand extends AbstractJavaEEComma
          }
       });
 
-      method.setItemLabelConverter(new Converter<JavaMethodResource, String>()
-      {
-         @Override
-         public String convert(JavaMethodResource source)
-         {
-            return source.getName();
-         }
-      });
+      method.setItemLabelConverter(JavaMethodResource::getName);
    }
 
    private void setupEJBs(UIContext context)
@@ -138,14 +125,10 @@ public class EJBSetMethodTransactionAttributeCommand extends AbstractJavaEEComma
                try
                {
                   JavaSource<?> source = resource.getJavaType();
-                  if (source instanceof JavaClassSource)
+                  if (ejbOperations.isEJB(resource.getJavaType()))
                   {
-                     if (source.hasAnnotation(Stateless.class) || source.hasAnnotation(Stateful.class) ||
-                              source.hasAnnotation(Singleton.class) || source.hasAnnotation(MessageDriven.class))
-                     {
-                        if (!((JavaClassSource) source).getMethods().isEmpty())
-                           entities.add(resource);
-                     }
+                     if (!((JavaClassSource) source).getMethods().isEmpty())
+                        entities.add(resource);
                   }
                }
                catch (FileNotFoundException e)

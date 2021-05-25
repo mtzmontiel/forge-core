@@ -1,13 +1,11 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.command;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -21,8 +19,8 @@ import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
 import org.jboss.forge.addon.resource.URLResource;
-import org.jboss.forge.addon.resource.util.ResourcePathResolver;
 import org.jboss.forge.addon.shell.ui.AbstractShellCommand;
+import org.jboss.forge.addon.ui.UIDesktop;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
@@ -70,23 +68,23 @@ public class OpenCommand extends AbstractShellCommand
       if (it.hasNext())
       {
          String newPath = it.next();
-         final List<Resource<?>> newResource = new ResourcePathResolver(resourceFactory, currentResource, newPath).resolve();
+         final List<Resource<?>> newResource = currentResource.resolveChildren(newPath);
          if (newResource.isEmpty() || !newResource.get(0).exists())
          {
-            result = Results.fail(newPath + ": No such file or directory");
+            result = Results.fail(newPath + ": resource does not exist or cannot be accessed");
          }
          else
          {
             for (Resource<?> resource : newResource)
             {
-               openResource(resource);
+               openResource(context, resource);
             }
             result = Results.success();
          }
       }
       else if (currentResource != null)
       {
-         openResource(currentResource);
+         openResource(context, currentResource);
          result = Results.success();
       }
       else
@@ -96,18 +94,18 @@ public class OpenCommand extends AbstractShellCommand
       return result;
    }
 
-   private void openResource(Resource<?> resource) throws IOException
+   private void openResource(UIExecutionContext context, Resource<?> resource) throws IOException
    {
-      Desktop dt = Desktop.getDesktop();
+      UIDesktop desktop = context.getUIContext().getProvider().getDesktop();
       if (resource instanceof FileResource<?>)
       {
-         dt.open((File) resource.getUnderlyingResourceObject());
+         desktop.open((File) resource.getUnderlyingResourceObject());
       }
       else if (resource instanceof URLResource)
       {
          try
          {
-            dt.browse(((URLResource) resource).getUnderlyingResourceObject().toURI());
+            desktop.browse(((URLResource) resource).getUnderlyingResourceObject().toURI());
          }
          catch (URISyntaxException e)
          {

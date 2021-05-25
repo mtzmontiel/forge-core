@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.shell.command;
 
 import java.util.ArrayList;
@@ -17,8 +23,6 @@ import org.jboss.forge.addon.parser.java.resources.JavaFieldResource;
 import org.jboss.forge.addon.parser.java.resources.JavaMethodResource;
 import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.resource.Resource;
-import org.jboss.forge.addon.resource.ResourceFactory;
-import org.jboss.forge.addon.resource.util.ResourcePathResolver;
 import org.jboss.forge.addon.shell.Shell;
 import org.jboss.forge.addon.shell.ui.AbstractShellCommand;
 import org.jboss.forge.addon.shell.util.ShellUtil;
@@ -41,10 +45,6 @@ import org.jboss.forge.addon.ui.util.Metadata;
 @SuppressWarnings("rawtypes")
 public class LsCommand extends AbstractShellCommand
 {
-
-   @Inject
-   private ResourceFactory resourceFactory;
-
    @Inject
    @WithAttributes(label = "Arguments", type = InputType.FILE_PICKER)
    private UIInputMany<String> arguments;
@@ -80,7 +80,7 @@ public class LsCommand extends AbstractShellCommand
          boolean searching = (value.matches(".*(\\?|\\*)+.*"));
          try
          {
-            resourceList = new ResourcePathResolver(resourceFactory, currentResource, value).resolve();
+            resourceList = currentResource.resolveChildren(value);
          }
          catch (RuntimeException re)
          {
@@ -198,8 +198,7 @@ public class LsCommand extends AbstractShellCommand
 
       Comparator<TerminalString> posixFileNameTerminalComparator = new Comparator<TerminalString>()
       {
-         private PosixFileNameComparator posixFileNameComparator =
-                  new PosixFileNameComparator();
+         private PosixFileNameComparator posixFileNameComparator = new PosixFileNameComparator();
 
          @Override
          public int compare(TerminalString o1, TerminalString o2)

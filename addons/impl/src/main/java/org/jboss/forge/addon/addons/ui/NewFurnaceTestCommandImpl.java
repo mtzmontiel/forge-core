@@ -1,18 +1,16 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.addons.ui;
 
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
-
-import javax.inject.Inject;
+import java.util.concurrent.Callable;
 
 import org.jboss.forge.addon.addons.facets.AddonTestFacet;
 import org.jboss.forge.addon.dependencies.Dependency;
@@ -27,21 +25,24 @@ import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
+import org.jboss.forge.addon.ui.facets.HintsFacet;
 import org.jboss.forge.addon.ui.hints.InputType;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.input.UISelectMany;
 import org.jboss.forge.addon.ui.input.UISelectOne;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
 import org.jboss.forge.furnace.Furnace;
 import org.jboss.forge.furnace.addons.AddonId;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.manager.maven.addon.MavenAddonDependencyResolver;
 import org.jboss.forge.furnace.repositories.AddonRepository;
 import org.jboss.forge.roaster.Roaster;
+import org.jboss.forge.roaster.model.source.AnnotationSource;
 import org.jboss.forge.roaster.model.source.JavaClassSource;
 import org.jboss.forge.roaster.model.source.MethodSource;
 
@@ -56,38 +57,32 @@ public class NewFurnaceTestCommandImpl extends AbstractProjectCommand implements
    private static final String DEFAULT_CONTAINER_NAME = "org.jboss.forge.furnace.container:cdi";
    private static final String DEFAULT_DEPENDENCY_NAME = "org.jboss.forge.addon:core";
 
-   @Inject
-   private ProjectFactory projectFactory;
-
-   @Inject
-   private Furnace furnace;
-
-   @Inject
-   private DependencyInstaller dependencyInstaller;
-
-   @Inject
-   @WithAttributes(label = "Package Name", type = InputType.JAVA_PACKAGE_PICKER)
    private UIInput<String> packageName;
-
-   @Inject
-   @WithAttributes(label = "Test Class Name", required = true)
    private UIInput<String> named;
-
-   @Inject
-   @WithAttributes(label = "Furnace container", required = true, requiredMessage = "You must select one Furnace container")
+   private UIInput<Boolean> reuseProjectAddons;
    private UISelectOne<AddonId> furnaceContainer;
-
-   @Inject
-   @WithAttributes(label = "Dependency addons", description = "Addons this test depends upon")
    private UISelectMany<AddonId> addonDependencies;
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      InputComponentFactory factory = builder.getInputComponentFactory();
+      packageName = factory.createInput("packageName", String.class).setLabel("Package Name");
+      packageName.getFacet(HintsFacet.class).setInputType(InputType.JAVA_PACKAGE_PICKER);
+      named = factory.createInput("named", String.class).setLabel("Test Class Name").setRequired(true);
+      reuseProjectAddons = factory.createInput("reuseProjectAddons", Boolean.class)
+               .setLabel("Use Addons from current project as dependencies (automatic discovery)")
+               .setDescription(
+                        "This will create an empty @AddonDependencies and reuse the addons in the current project's pom.xml")
+               .setDefaultValue(true);
+      furnaceContainer = factory.createSelectOne("furnaceContainer", AddonId.class).setLabel("Furnace container")
+               .setRequiredMessage("You must select one Furnace container");
+      addonDependencies = factory.createSelectMany("addonDependencies", AddonId.class).setLabel("Dependency addons")
+               .setDescription("Addons this test depends upon");
       configureAddonDependencies();
       Project project = getSelectedProject(builder.getUIContext());
       packageName.setDefaultValue(project.getFacet(JavaSourceFacet.class).getBasePackage());
-      builder.add(packageName).add(named).add(furnaceContainer).add(addonDependencies);
+      builder.add(packageName).add(named).add(reuseProjectAddons).add(furnaceContainer).add(addonDependencies);
    }
 
    private void configureAddonDependencies()
@@ -96,6 +91,7 @@ public class NewFurnaceTestCommandImpl extends AbstractProjectCommand implements
       Set<AddonId> containerChoices = new TreeSet<>();
       AddonId defaultContainer = null;
       AddonId defaultDependency = null;
+      Furnace furnace = SimpleContainer.getFurnace(getClass().getClassLoader());
       for (AddonRepository repository : furnace.getRepositories())
       {
          for (AddonId id : repository.listEnabled())
@@ -124,6 +120,17 @@ public class NewFurnaceTestCommandImpl extends AbstractProjectCommand implements
       addonDependencies.setValueChoices(addonChoices);
       if (defaultDependency != null)
          addonDependencies.setDefaultValue(Arrays.asList(defaultDependency));
+      // Enable addon dependencies
+      Callable<Boolean> reuseProjectDepsCallable = new Callable<Boolean>()
+      {
+         @Override
+         public Boolean call() throws Exception
+         {
+            return !reuseProjectAddons.getValue();
+         }
+      };
+      furnaceContainer.setEnabled(reuseProjectDepsCallable).setRequired(reuseProjectDepsCallable);
+      addonDependencies.setEnabled(reuseProjectDepsCallable);
    }
 
    @Override
@@ -146,50 +153,53 @@ public class NewFurnaceTestCommandImpl extends AbstractProjectCommand implements
       javaClass.addImport("org.jboss.arquillian.container.test.api.Deployment");
       javaClass.addImport("org.jboss.arquillian.junit.Arquillian");
       javaClass.addImport("org.jboss.forge.arquillian.AddonDependency");
-      javaClass.addImport("org.jboss.forge.arquillian.Dependencies");
-      javaClass.addImport("org.jboss.forge.arquillian.archive.ForgeArchive");
-      javaClass.addImport("org.jboss.forge.furnace.repositories.AddonDependencyEntry");
+      javaClass.addImport("org.jboss.forge.arquillian.AddonDependencies");
+      javaClass.addImport("org.jboss.forge.arquillian.archive.AddonArchive");
       javaClass.addImport("org.jboss.shrinkwrap.api.ShrinkWrap");
       javaClass.addImport("org.junit.runner.RunWith");
+      javaClass.addImport("org.junit.Assert");
+      javaClass.addImport("org.junit.Test");
 
       // Add Arquillian annotation
       javaClass.addAnnotation("RunWith").setLiteralValue("Arquillian.class");
 
       // Create getDeployment method
-      StringBuilder body = new StringBuilder(
-               "ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class).addBeansXML()");
-      StringBuilder dependenciesAnnotationBody = new StringBuilder();
-      body.append(".addAsAddonDependencies(");
-      AddonId furnaceContainerId = furnaceContainer.getValue();
-      addAddonDependency(project, body, dependenciesAnnotationBody, furnaceContainerId);
-      Iterator<AddonId> it = addonDependencies.getValue().iterator();
-      if (it.hasNext())
-      {
-         body.append(",");
-         dependenciesAnnotationBody.append(",");
-      }
-      while (it.hasNext())
-      {
-         AddonId addonId = it.next();
-         addAddonDependency(project, body, dependenciesAnnotationBody, addonId);
-         if (it.hasNext())
-         {
-            body.append(",");
-            dependenciesAnnotationBody.append(",");
-         }
-      }
-      body.append(")");
-      body.append(";");
-      body.append("return archive;");
       MethodSource<JavaClassSource> getDeployment = javaClass.addMethod().setName("getDeployment").setPublic()
                .setStatic(true)
-               .setBody(body.toString()).setReturnType("ForgeArchive");
+               .setBody("return ShrinkWrap.create(AddonArchive.class).addBeansXML();").setReturnType("AddonArchive");
       getDeployment.addAnnotation("Deployment");
-      String annotationBody = dependenciesAnnotationBody.toString();
-      if (annotationBody.length() > 0)
+      AnnotationSource<JavaClassSource> addonDependenciesAnn = getDeployment.addAnnotation("AddonDependencies");
+
+      if (!reuseProjectAddons.getValue())
       {
-         getDeployment.addAnnotation("Dependencies").setLiteralValue("{" + annotationBody + "}");
+         StringBuilder dependenciesAnnotationBody = new StringBuilder();
+         AddonId furnaceContainerId = furnaceContainer.getValue();
+         addAddonDependency(project, dependenciesAnnotationBody, furnaceContainerId);
+         Iterator<AddonId> it = addonDependencies.getValue().iterator();
+         if (it.hasNext())
+         {
+            dependenciesAnnotationBody.append(",");
+         }
+         while (it.hasNext())
+         {
+            AddonId addonId = it.next();
+            addAddonDependency(project, dependenciesAnnotationBody, addonId);
+            if (it.hasNext())
+            {
+               dependenciesAnnotationBody.append(",");
+            }
+         }
+
+         String annotationBody = dependenciesAnnotationBody.toString();
+         if (annotationBody.length() > 0)
+         {
+            addonDependenciesAnn.setLiteralValue("{" + annotationBody + "}");
+         }
       }
+
+      // Create test method
+      javaClass.addMethod().setName("testAddon").setPublic().setReturnTypeVoid()
+               .setBody("Assert.fail(\"Not yet implemented\");").addAnnotation("Test");
 
       JavaSourceFacet facet = project.getFacet(JavaSourceFacet.class);
       JavaResource javaResource = facet.saveTestJavaSource(javaClass);
@@ -197,20 +207,20 @@ public class NewFurnaceTestCommandImpl extends AbstractProjectCommand implements
       return Results.success("Test class " + javaClass.getQualifiedName() + " created");
    }
 
-   private void addAddonDependency(Project project, StringBuilder body, StringBuilder dependenciesAnnotationBody,
+   private void addAddonDependency(Project project, StringBuilder dependenciesAnnotationBody,
             AddonId addonId)
    {
+      DependencyInstaller dependencyInstaller = SimpleContainer
+               .getServices(getClass().getClassLoader(), DependencyInstaller.class).get();
       Dependency dependency = DependencyBuilder.create(addonId.getName()).setVersion(
-               addonId.getVersion().toString()).setClassifier(MavenAddonDependencyResolver.FORGE_ADDON_CLASSIFIER).setScopeType("test");
+               addonId.getVersion().toString()).setClassifier(MavenAddonDependencyResolver.FORGE_ADDON_CLASSIFIER)
+               .setScopeType("test");
       String name = addonId.getName();
       if (!dependencyInstaller.isInstalled(project, dependency))
       {
          dependencyInstaller.install(project, dependency);
       }
-      body.append("AddonDependencyEntry.create(\"").append(name);
-      dependenciesAnnotationBody.append("@AddonDependency(name = \"").append(name);
-      body.append("\")");
-      dependenciesAnnotationBody.append("\")");
+      dependenciesAnnotationBody.append("@AddonDependency(name = \"").append(name).append("\")");
    }
 
    @Override
@@ -222,7 +232,7 @@ public class NewFurnaceTestCommandImpl extends AbstractProjectCommand implements
    @Override
    protected ProjectFactory getProjectFactory()
    {
-      return projectFactory;
+      return SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class).get();
    }
 
 }

@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -20,6 +20,8 @@ import org.jboss.forge.furnace.spi.ListenerRegistration;
 
 /**
  * This is the parent interface of all inputs.
+ * 
+ * The following facets are supported and automatically installed: {@link HintsFacet}
  * 
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  * @author <a href="mailto:ggastald@redhat.com">George Gastaldi</a>
@@ -108,7 +110,7 @@ public interface InputComponent<IMPLTYPE, VALUETYPE> extends MutableFaceted<Hint
     * Set a few sentences describing the purpose of this {@link InputComponent}.
     */
    IMPLTYPE setDescription(String description);
-   
+
    /**
     * Set a few sentences describing the purpose of this {@link InputComponent}.
     */
@@ -129,6 +131,12 @@ public interface InputComponent<IMPLTYPE, VALUETYPE> extends MutableFaceted<Hint
     * been set.
     */
    IMPLTYPE setRequiredMessage(String message);
+
+   /**
+    * Set the {@link Callable} object to supply the message to be displayed when this {@link InputComponent} is required
+    * and no primary or default value has been set.
+    */
+   IMPLTYPE setRequiredMessage(Callable<String> message);
 
    /**
     * Get the current {@link Converter} instance with which this {@link InputComponent} value should be converted to and
@@ -164,4 +172,50 @@ public interface InputComponent<IMPLTYPE, VALUETYPE> extends MutableFaceted<Hint
     * @param validator the {@link UIValidationContext} object that holds validation errors
     */
    void validate(UIValidationContext context);
+
+   /**
+    * A note is a description about the value of this input. in a GUI environment, it is displayed below the input.
+    * 
+    * @param note to be displayed below the input in GUIs
+    */
+   IMPLTYPE setNote(String note);
+
+   /**
+    * A note is a description about the value of this input. in a GUI environment, it is displayed below the input.
+    * 
+    * @param note to be displayed below the input in GUIs
+    */
+   IMPLTYPE setNote(Callable<String> note);
+
+   /**
+    * A note is a description about the value of this input. in a GUI environment, it is displayed below the input.
+    * 
+    * @return the note to be displayed below the input in GUIs
+    */
+   String getNote();
+
+   /**
+    * @return if this input is discouraged from using, typically because it is dangerous, or because a better
+    *         alternative exists
+    */
+   boolean isDeprecated();
+
+   /**
+    * A deprecated input is discouraged from using, typically because it is dangerous, or because a better alternative
+    * exists
+    * 
+    * @param deprecated the flag indicating that this {@link InputComponent} is deprecated
+    */
+   IMPLTYPE setDeprecated(boolean deprecated);
+
+   /**
+    * @return a deprecated message to be displayed when {@link InputComponent#isDeprecated()} returns <code>true</code>.
+    */
+   String getDeprecatedMessage();
+
+   /**
+    * @param message The deprecated message to be displayed when {@link InputComponent#isDeprecated()} returns
+    *           <code>true</code>.
+    */
+   IMPLTYPE setDeprecatedMessage(String message);
 }

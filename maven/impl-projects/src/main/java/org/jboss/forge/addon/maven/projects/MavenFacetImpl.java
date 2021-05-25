@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -7,11 +7,13 @@
 package org.jboss.forge.addon.maven.projects;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.Writer;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,23 +26,29 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-import javax.inject.Inject;
-
+import org.apache.maven.cli.CliRequest;
 import org.apache.maven.cli.MavenCli;
+import org.apache.maven.cli.logging.impl.UnsupportedSlf4jBindingConfiguration;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.building.ModelBuildingException;
+import org.apache.maven.model.building.ModelBuildingResult;
 import org.apache.maven.model.building.ModelProblem;
 import org.apache.maven.model.building.ModelProblem.Severity;
 import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
 import org.apache.maven.project.ProjectBuildingException;
-import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.project.ProjectBuildingResult;
+import org.codehaus.plexus.classworlds.ClassWorld;
 import org.jboss.forge.addon.facets.AbstractFacet;
 import org.jboss.forge.addon.maven.projects.util.NativeSystemCall;
 import org.jboss.forge.addon.maven.resources.MavenModelResource;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFacet;
+import org.jboss.forge.addon.projects.building.BuildMessage;
+import org.jboss.forge.addon.projects.building.BuildResult;
+import org.jboss.forge.addon.projects.building.BuildResultBuilder;
 import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.resource.ResourceFactory;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.manager.maven.MavenContainer;
 import org.jboss.forge.furnace.util.OperatingSystemUtils;
 import org.jboss.forge.furnace.util.Strings;
@@ -55,26 +63,7 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
 {
    private static final Logger log = Logger.getLogger(MavenFacetImpl.class.getName());
 
-   @Inject
-   private ResourceFactory factory;
-
-   @Inject
-   private MavenBuildManager buildManager;
-
-   public ProjectBuildingRequest getRequest()
-   {
-      return buildManager.getProjectBuildingRequest();
-   }
-
-   public ProjectBuildingRequest getOfflineRequest()
-   {
-      return buildManager.getProjectBuildingRequest(isInstalled());
-   }
-
-   public ProjectBuildingRequest getBuildingRequest(final boolean offline)
-   {
-      return buildManager.getProjectBuildingRequest(offline);
-   }
+   private static final MavenBuildManager BUILD_MANAGER = new MavenBuildManager();
 
    @Override
    public boolean install()
@@ -129,30 +118,63 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
    @Override
    public void setModel(final Model pom)
    {
-      MavenXpp3Writer writer = new MavenXpp3Writer();
-      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
       MavenModelResource modelResource = getModelResource();
-      try (Writer fw = new OutputStreamWriter(outputStream))
+      try
       {
-         writer.write(fw, pom);
-         modelResource.setContents(outputStream.toString());
-      }
-      catch (IOException e)
-      {
-         throw new RuntimeException("Could not write POM file: " + modelResource.getFullyQualifiedName(), e);
+         modelResource.setCurrentModel(pom);
       }
       finally
       {
-         buildManager.evictFromCache(modelResource);
+         BUILD_MANAGER.evictFromCache(modelResource);
       }
    }
 
-   /*
+   /**
     * POM manipulation methods
     */
    public synchronized ProjectBuildingResult getProjectBuildingResult() throws ProjectBuildingException
    {
-      return buildManager.getProjectBuildingResult(getModelResource());
+      return BUILD_MANAGER.getProjectBuildingResult(getModelResource());
+   }
+
+   @Override
+   public Model getEffectiveModel()
+   {
+      try
+      {
+         return BUILD_MANAGER.getModelBuildingResult(getModelResource()).getEffectiveModel();
+      }
+      catch (ModelBuildingException e)
+      {
+         throw new RuntimeException("Error while building effective model", e);
+      }
+   }
+
+   private synchronized ModelBuildingResult getModelBuildingResult() throws ModelBuildingException
+   {
+      return BUILD_MANAGER.getModelBuildingResult(getModelResource());
+   }
+
+   @Override
+   public BuildResult getEffectiveModelBuildResult()
+   {
+      BuildResultBuilder resultBuilder = BuildResultBuilder.create();
+      MavenFacetImpl mvn = getFaceted().getFacet(MavenFacetImpl.class);
+      resultBuilder.status(mvn.isModelValid());
+      try
+      {
+         ModelBuildingResult result = mvn.getModelBuildingResult();
+         if (!result.getProblems().isEmpty())
+         {
+            String errorMessage = new ModelBuildingException(result).getMessage();
+            resultBuilder.addMessage(BuildMessage.Severity.ERROR, errorMessage);
+         }
+      }
+      catch (ModelBuildingException e)
+      {
+         resultBuilder.addMessage(BuildMessage.Severity.ERROR, e.getMessage());
+      }
+      return resultBuilder.build();
    }
 
    @Override
@@ -162,7 +184,7 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
 
       try
       {
-         Properties properties = getProjectBuildingResult().getProject().getProperties();
+         Properties properties = getEffectiveModel().getProperties();
          for (Entry<Object, Object> o : properties.entrySet())
          {
             result.put((String) o.getKey(), (String) o.getValue());
@@ -170,7 +192,8 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
       }
       catch (Exception e)
       {
-         log.log(Level.WARNING, "Failed to resolve properties in [" + getModelResource().getFullyQualifiedName() + "].");
+         log.log(Level.WARNING,
+                  "Failed to resolve properties in [" + getModelResource().getFullyQualifiedName() + "].");
          log.log(Level.FINE, "Failed to resolve properties in Project [" + getModelResource().getFullyQualifiedName()
                   + "].", e);
       }
@@ -186,7 +209,7 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
       {
          if (input != null)
          {
-            Properties properties = getProjectBuildingResult().getProject().getProperties();
+            Properties properties = getEffectiveModel().getProperties();
 
             for (Entry<Object, Object> e : properties.entrySet())
             {
@@ -262,8 +285,21 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
       try
       {
          globalLogger.addHandler(outHandler);
-         int returnCode = new MavenCli().doMain(params, getFaceted().getRoot().getFullyQualifiedName(), out, err);
-         return returnCode == 0;
+         PrintStream oldout = System.out;
+         PrintStream olderr = System.err;
+         try
+         {
+            System.setOut(out);
+            System.setErr(err);
+            CliRequest cliRequest = createCliRequest(params, getFaceted().getRoot().getFullyQualifiedName());
+            int returnCode = new MavenCli().doMain(cliRequest);
+            return returnCode == 0;
+         }
+         finally
+         {
+            System.setOut(oldout);
+            System.setErr(olderr);
+         }
       }
       finally
       {
@@ -271,15 +307,79 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
       }
    }
 
+   // Horrible hack. Bad Maven API
+   CliRequest createCliRequest(String[] params, String workingDirectory)
+   {
+      CliRequest cliRequest = null;
+      try
+      {
+         Constructor<CliRequest> constructor = CliRequest.class.getDeclaredConstructor(String[].class,
+                  ClassWorld.class);
+         // This is package-private
+         constructor.setAccessible(true);
+         cliRequest = constructor.newInstance(params, null);
+
+         Field workingDirectoryField = CliRequest.class.getDeclaredField("workingDirectory");
+         workingDirectoryField.setAccessible(true);
+         workingDirectoryField.set(cliRequest, workingDirectory);
+
+         // This is the reason why we now call MavenCli.doMain(CliRequest)
+         Field multiModuleProjectDirectoryField = CliRequest.class.getDeclaredField("multiModuleProjectDirectory");
+         multiModuleProjectDirectoryField.setAccessible(true);
+         multiModuleProjectDirectoryField.set(cliRequest, new File(workingDirectory));
+      }
+      catch (Exception e)
+      {
+         throw new RuntimeException("Error while creating CliRequest", e);
+      }
+      return cliRequest;
+   }
+
+   @Override public boolean executeMaven(List<String> parameters, PrintStream out, PrintStream err)
+   {
+      List<String> list = new ArrayList<>();
+      // FORGE-1912: Maven settings are not being set in embedded maven
+      if (System.getProperty(MavenContainer.ALT_USER_SETTINGS_XML_LOCATION) != null)
+      {
+         list.add("-s");
+         list.add(System.getProperty(MavenContainer.ALT_USER_SETTINGS_XML_LOCATION));
+      }
+      else if (System.getProperty(MavenContainer.ALT_GLOBAL_SETTINGS_XML_LOCATION) != null)
+      {
+         list.add("-s");
+         list.add(System.getProperty(MavenContainer.ALT_GLOBAL_SETTINGS_XML_LOCATION));
+      }
+      if (parameters != null)
+      {
+         list.addAll(parameters);
+      }
+      try
+      {
+         DirectoryResource directory = getFaceted().getRoot().reify(DirectoryResource.class);
+         if (directory == null)
+            throw new IllegalStateException("Cannot execute maven build on resources that are not File-based.");
+         int returnValue = NativeSystemCall.execFromPath(getMvnCommand(), list.toArray(new String[0]), out, directory);
+         switch (returnValue) {
+            case 0: return true;
+            case -1: return false;
+            default:
+               return executeMavenEmbedded(list, out, err);
+         }
+      }
+      catch (IOException e)
+      {
+         return false;
+      }
+   }
+
    @Override
    public boolean executeMaven(final List<String> parameters)
    {
-      return executeMaven(parameters.toArray(new String[parameters.size()]));
+      return executeMaven(parameters.toArray(new String[0]));
    }
 
    public boolean executeMaven(final String[] selected)
    {
-      // return executeMaven(new NullOutputStream(), selected);
       return executeMaven(System.out, selected);
    }
 
@@ -313,6 +413,9 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
          else
             return executeMavenEmbedded(params);
       }
+      catch (InterruptedIOException e) {
+         return false;
+      }
       catch (IOException e)
       {
          return executeMavenEmbedded(params);
@@ -321,33 +424,35 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
 
    private String getMvnCommand()
    {
-      return OperatingSystemUtils.isWindows() ? "mvn.bat" : "mvn";
+      return OperatingSystemUtils.isWindows() ? "mvn.cmd" : "mvn";
    }
 
    @Override
    public DirectoryResource getLocalRepositoryDirectory()
    {
-      return factory.create(buildManager.getLocalRepositoryDirectory()).reify(DirectoryResource.class);
+      ResourceFactory resourceFactory = SimpleContainer.getServices(getClass().getClassLoader(), ResourceFactory.class)
+               .get();
+      return resourceFactory.create(BUILD_MANAGER.getLocalRepositoryDirectory()).reify(DirectoryResource.class);
    }
 
    @Override
    public boolean isModelValid()
    {
+      boolean valid = true;
       try
       {
-         boolean valid = true;
-         List<ModelProblem> problems = getProjectBuildingResult().getProblems();
+         List<ModelProblem> problems = getModelBuildingResult().getProblems();
          for (ModelProblem problem : problems)
          {
             // It is valid only if all messages are just warnings
             valid &= Severity.WARNING.equals(problem.getSeverity());
          }
-         return valid;
       }
-      catch (ProjectBuildingException e)
+      catch (ModelBuildingException mbe)
       {
-         return false;
+         valid = false;
       }
+      return valid;
    }
 
    /**
@@ -384,15 +489,12 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
       {
          if (super.isLoggable(record))
          {
-            switch (record.getMessage())
+            // Skip annoying SLF4J logging messages
+            if (UnsupportedSlf4jBindingConfiguration.class.getName().equals(record.getLoggerName()))
             {
-            // Avoid unwanted warning messages
-            case "setRootLoggerLevel: operation not supported":
-            case "reset(): operation not supported":
-               break;
-            default:
-               return true;
+               return false;
             }
+            return true;
          }
          return false;
       }
@@ -409,5 +511,4 @@ public class MavenFacetImpl extends AbstractFacet<Project> implements ProjectFac
          // Never close
       }
    }
-
 }

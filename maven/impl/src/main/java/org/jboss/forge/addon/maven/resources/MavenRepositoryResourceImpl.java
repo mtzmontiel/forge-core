@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -19,7 +19,7 @@ import org.jboss.forge.addon.resource.VirtualResource;
  * @author <a href="mailto:aslak@redhat.com">Aslak Knutsen</a>
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-public class MavenRepositoryResourceImpl extends VirtualResource<Repository>
+public class MavenRepositoryResourceImpl extends VirtualResource<Repository>implements MavenRepositoryResource
 {
    private final Repository repo;
 
@@ -35,6 +35,7 @@ public class MavenRepositoryResourceImpl extends VirtualResource<Repository>
       return repo.getId();
    }
 
+   @Override
    public String getURL()
    {
       return repo.getUrl();

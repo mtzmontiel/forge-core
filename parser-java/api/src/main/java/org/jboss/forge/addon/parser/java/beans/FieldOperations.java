@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.parser.java.beans;
 
 import java.io.FileNotFoundException;
@@ -70,11 +69,13 @@ public class FieldOperations
     * @param visibility The visibility of the newly created field
     * @param withGetter Specifies whether accessor method should be created
     * @param withSetter Specifies whether mutator method should be created
+    * @param updateToString Specifies whether the field should be added in the toString method
     * @param annotations An optional list of annotations that will be added to the field
     * @return The newly created field
     */
    public FieldSource<JavaClassSource> addFieldTo(final JavaClassSource targetClass, final String fieldType,
             final String fieldName, Visibility visibility, boolean withGetter, boolean withSetter,
+            boolean updateToString,
             String... annotations)
    {
       if (targetClass.hasField(fieldName))
@@ -103,9 +104,31 @@ public class FieldOperations
       {
          targetClass.removeMethod(property.getMutator());
       }
+      if (updateToString)
+      {
+         updateToString(targetClass);
+      }
 
-      updateToString(targetClass);
       return field;
+   }
+
+   /**
+    * Adds the field, updating the toString(). If specified, adds a getter, a setter or both.
+    *
+    * @param targetClass The class which the field will be added to
+    * @param fieldType The type of the field
+    * @param fieldName The name of the field
+    * @param visibility The visibility of the newly created field
+    * @param withGetter Specifies whether accessor method should be created
+    * @param withSetter Specifies whether mutator method should be created
+    * @param annotations An optional list of annotations that will be added to the field
+    * @return The newly created field
+    */
+   public FieldSource<JavaClassSource> addFieldTo(final JavaClassSource targetClass, final String fieldType,
+            final String fieldName, Visibility visibility, boolean withGetter, boolean withSetter,
+            String... annotations)
+   {
+      return addFieldTo(targetClass, fieldType, fieldName, visibility, withGetter, withSetter, true, annotations);
    }
 
    private void updateToString(final JavaClassSource targetEntity)
@@ -130,14 +153,13 @@ public class FieldOperations
 
    protected boolean canAddFieldToToString(Field<JavaClassSource> field)
    {
-      return !field.isStatic();
+      return !field.isStatic() && !field.isTransient() && !field.getType().isArray();
    }
 
    /**
-    * @param project   Project in which the fieldType will be searched
+    * @param project Project in which the fieldType will be searched
     * @param fieldType Full type of the field with package
-    * @return true if fieldType was found and is enum
-    *         false otherwise.
+    * @return true if fieldType was found and is enum false otherwise.
     * @throws IllegalArgumentException if fieldType or project is null
     */
    public boolean isFieldTypeEnum(Project project, String fieldType)
@@ -146,11 +168,10 @@ public class FieldOperations
    }
 
    /**
-    * @param project      Project in which the fieldType will be searched
-    * @param fieldType    Type of the field
+    * @param project Project in which the fieldType will be searched
+    * @param fieldType Type of the field
     * @param targetEntity Entity which package which will be used if fieldType doesn't have package specified
-    * @return true if fieldType was found and is enum
-    *         false otherwise.
+    * @return true if fieldType was found and is enum false otherwise.
     * @throws IllegalArgumentException if fieldType or project is null
     */
    public boolean isFieldTypeEnum(Project project, JavaClassSource targetEntity, String fieldType)

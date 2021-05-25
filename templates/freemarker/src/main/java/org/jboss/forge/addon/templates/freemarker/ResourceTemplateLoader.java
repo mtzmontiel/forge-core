@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.templates.freemarker;
 
 import java.io.IOException;
@@ -14,12 +13,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import org.jboss.forge.addon.resource.FileResource;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
+import org.jboss.forge.furnace.addons.AddonRegistry;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 
 import freemarker.cache.StatefulTemplateLoader;
 
@@ -29,15 +27,10 @@ import freemarker.cache.StatefulTemplateLoader;
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@Singleton
 public class ResourceTemplateLoader implements StatefulTemplateLoader
 {
    private final Map<String, ResourceId> resourceMap = new ConcurrentHashMap<>();
 
-   /**
-    * Needed for includes
-    */
-   @Inject
    private ResourceFactory resourceFactory;
 
    String register(Resource<?> resource)
@@ -70,7 +63,7 @@ public class ResourceTemplateLoader implements StatefulTemplateLoader
 
       if (id == null)
       {
-         Resource<?> includedResource = resourceFactory.create(name);
+         Resource<?> includedResource = getResourceFactory().create(name);
          if (includedResource != null && includedResource.exists())
          {
             id = generateResourceId(includedResource);
@@ -114,6 +107,16 @@ public class ResourceTemplateLoader implements StatefulTemplateLoader
    private ResourceId generateResourceId(Resource<?> resource)
    {
       return new ResourceId(resource);
+   }
+
+   private ResourceFactory getResourceFactory()
+   {
+      if (resourceFactory == null)
+      {
+         AddonRegistry addonRegistry = SimpleContainer.getFurnace(getClass().getClassLoader()).getAddonRegistry();
+         resourceFactory = addonRegistry.getServices(ResourceFactory.class).get();
+      }
+      return resourceFactory;
    }
 
 }

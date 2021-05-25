@@ -51,7 +51,7 @@ echo.
 goto error
 
 :OkJHome
-if exist "%JAVA_HOME%\bin\java.exe" goto chkJVersion
+if exist "%JAVA_HOME%\bin\java.exe" goto chkJVersionInReleaseFile
 
 echo.
 echo ERROR: JAVA_HOME is set to an invalid directory.
@@ -61,12 +61,33 @@ echo location of your Java installation
 echo.
 goto error
 
+:chkJVersionInReleaseFile
+if not exist "%JAVA_HOME%\release" goto chkJVersion
+
+for /f "delims== tokens=2" %%g in ('findstr "JAVA_VERSION=" "%JAVA_HOME%\release"') do (
+   set JAVAVER=%%g
+)
+set JAVAVER=%JAVAVER:"=%
+for /f "delims=. tokens=1" %%v in ("%JAVAVER%") do (
+   set JAVAVER_MAJOR=%%v
+)
+if %JAVAVER_MAJOR% gtr 1 goto chkFHome
+for /f "delims=. tokens=2" %%v in ("%JAVAVER%") do (
+   set JAVAVER_MINOR=%%v
+)
+if %JAVAVER_MINOR% geq 7 goto chkFHome
+
 :chkJVersion
 set PATH="%JAVA_HOME%\bin";%PATH%
 
 for /f "tokens=3" %%g in ('java -version 2^>^&1 ^| findstr /i "version"') do (
    set JAVAVER=%%g
 )
+set JAVAVER=%JAVAVER:"=%
+for /f "delims=. tokens=1" %%v in ("%JAVAVER%") do (
+   set JAVAVER_MAJOR=%%v
+)
+if %JAVAVER_MAJOR% gtr 1 goto chkFHome
 for /f "delims=. tokens=1-3" %%v in ("%JAVAVER%") do (
    set JAVAVER_MINOR=%%w
 )
@@ -114,6 +135,7 @@ goto error
 @REM Initializing the argument line
 :init
 setlocal enableextensions enabledelayedexpansion
+echo Using Forge at %FORGE_HOME%
 set FORGE_CMD_LINE_ARGS=
 set FORGE_DEBUG_ARGS=
 
@@ -150,6 +172,27 @@ goto runForge
 
 @REM Start Forge
 :runForge
+
+@REM If there is update prepared (.update directory), copy files from it
+if exist "%FORGE_HOME%\.update" (
+  rmdir /S/Q "%FORGE_HOME%\addons"
+  move /y "%FORGE_HOME%\.update\addons\*" "%FORGE_HOME%\addons\*"
+
+  rmdir /S/Q "%FORGE_HOME%\bin"
+  move /y "%FORGE_HOME%\.update\bin\*" "%FORGE_HOME%\bin\*"
+
+  rmdir /S/Q "%FORGE_HOME%\lib"
+  move /y "%FORGE_HOME%\.update\lib\*" "%FORGE_HOME%\lib\*"
+
+  rmdir /S/Q "%FORGE_HOME%\.update"
+  
+  cd ..
+  cd bin
+  echo "Restarting Forge to newer version."
+  CALL forge.bat %*
+  exit /b
+)
+
 
 if exist "%FORGE_HOME%\addons" set ADDONS_DIR=--immutableAddonDir "%FORGE_HOME%\addons" 
 set FORGE_MAIN_CLASS=org.jboss.forge.bootstrap.Bootstrap

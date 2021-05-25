@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -15,7 +15,7 @@ import org.apache.maven.settings.Repository;
 import org.apache.maven.settings.RepositoryPolicy;
 import org.eclipse.aether.repository.Authentication;
 import org.eclipse.aether.util.repository.AuthenticationBuilder;
-import org.jboss.forge.addon.maven.projects.P2ArtifactRepositoryLayout;
+import org.jboss.forge.addon.maven.impl.P2ArtifactRepositoryLayout;
 
 /**
  * Repository Utils

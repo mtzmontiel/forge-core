@@ -1,19 +1,17 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.resource.converter;
 
 import java.io.File;
 
-import javax.inject.Inject;
-
 import org.jboss.forge.addon.convert.AbstractConverter;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 
 /**
  * Converts a {@link File} object to a {@link Resource}
@@ -26,7 +24,12 @@ public class ResourceConverter extends AbstractConverter<Object, Resource>
 {
    private final ResourceFactory resourceFactory;
 
-   @Inject
+   public ResourceConverter()
+   {
+      super(Object.class, Resource.class);
+      this.resourceFactory = SimpleContainer.getServices(getClass().getClassLoader(), ResourceFactory.class).get();
+   }
+
    public ResourceConverter(ResourceFactory resourceFactory)
    {
       super(Object.class, Resource.class);

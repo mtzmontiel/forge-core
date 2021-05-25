@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.resource;
 
 import java.io.ByteArrayInputStream;
@@ -6,15 +12,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 
 import org.jboss.forge.addon.resource.monitor.ResourceMonitor;
 import org.jboss.forge.furnace.util.Assert;
-import org.jboss.forge.furnace.util.OperatingSystemUtils;
 import org.jboss.forge.furnace.util.Streams;
 
 /**
  * A standard, built-in resource for representing files on the filesystem.
- * 
+ *
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  * @author <a href="mailto:ggastald@redhat.com">George Gastaldi</a>
  */
@@ -77,7 +84,7 @@ public abstract class AbstractFileResource<T extends FileResource<T>> extends Ab
    /**
     * Create a new {@link Resource} instance for the target file. The new {@link Resource} should be of the same type as
     * <b>this</b>.
-    * 
+    *
     * @param file The file to create the resource instance from.
     * @return A new resource.
     */
@@ -131,7 +138,7 @@ public abstract class AbstractFileResource<T extends FileResource<T>> extends Ab
    {
       if (recursive)
       {
-         if (_deleteRecursive(file, true))
+         if (getFileOperations().deleteFile(file, recursive))
          {
             return true;
          }
@@ -142,11 +149,6 @@ public abstract class AbstractFileResource<T extends FileResource<T>> extends Ab
       if ((listFiles != null) && (listFiles.length != 0))
       {
          throw new RuntimeException("directory not empty");
-      }
-
-      if (OperatingSystemUtils.isWindows())
-      {
-         System.gc(); // ensure no lingering handles that would prevent deletion
       }
 
       if (getFileOperations().deleteFile(file))
@@ -160,40 +162,6 @@ public abstract class AbstractFileResource<T extends FileResource<T>> extends Ab
    public void deleteOnExit()
    {
       getFileOperations().deleteFileOnExit(file);
-   }
-
-   private boolean _deleteRecursive(final File file, final boolean collect)
-   {
-      if (collect && OperatingSystemUtils.isWindows())
-      {
-         System.gc(); // ensure no lingering handles that would prevent deletion
-      }
-
-      if (file == null)
-      {
-         return false;
-      }
-
-      File[] children = getFileOperations().listFiles(file);
-      if (children != null)
-      {
-         for (File sf : children)
-         {
-            if (getFileOperations().fileExistsAndIsDirectory(sf))
-            {
-               _deleteRecursive(sf, false);
-            }
-            else
-            {
-               if (!getFileOperations().deleteFile(sf))
-               {
-                  throw new RuntimeException("failed to delete: " + sf.getAbsolutePath());
-               }
-            }
-         }
-      }
-
-      return getFileOperations().deleteFile(file);
    }
 
    @Override
@@ -245,16 +213,14 @@ public abstract class AbstractFileResource<T extends FileResource<T>> extends Ab
             }
          }
 
-         OutputStream out = getFileOperations().createOutputStream(file);
-         try
+         try (OutputStream out = getResourceOutputStream())
          {
             Streams.write(data, out);
+            out.flush();
          }
          finally
          {
             Streams.closeQuietly(data);
-            out.flush();
-            Streams.closeQuietly(out);
          }
       }
       catch (IOException e)
@@ -332,15 +298,33 @@ public abstract class AbstractFileResource<T extends FileResource<T>> extends Ab
    }
 
    @Override
+   public void setExecutable(boolean executable, boolean ownerOnly)
+   {
+      this.file.setExecutable(executable, ownerOnly);
+   }
+
+   @Override
    public boolean isReadable()
    {
       return (this.file.canRead() && !getFileOperations().fileExistsAndIsDirectory(file));
    }
 
    @Override
+   public void setReadable(boolean readable, boolean ownerOnly)
+   {
+      this.file.setReadable(readable, ownerOnly);
+   }
+
+   @Override
    public boolean isWritable()
    {
       return (this.file.canWrite() && !getFileOperations().fileExistsAndIsDirectory(file));
+   }
+
+   @Override
+   public void setWritable(boolean writable, boolean ownerOnly)
+   {
+      this.file.setWritable(writable, ownerOnly);
    }
 
    @Override
@@ -388,6 +372,60 @@ public abstract class AbstractFileResource<T extends FileResource<T>> extends Ab
       catch (IOException ioe)
       {
          throw new ResourceException("Error while creating OutputStream for Resource " + this, ioe);
+      }
+   }
+
+   @Override
+   public void moveTo(FileResource<?> target)
+   {
+      try
+      {
+         this.file = getFileOperations().move(file, target.getUnderlyingResourceObject());
+      }
+      catch (IOException e)
+      {
+         throw new ResourceException("Error while moving Resource " + this, e);
+      }
+   }
+
+   @Override
+   public OutputStream getResourceOutputStream(boolean append)
+   {
+      try
+      {
+         return getFileOperations().createOutputStream(file, append);
+      }
+      catch (IOException ioe)
+      {
+         throw new ResourceException("Error while creating OutputStream for Resource " + this, ioe);
+      }
+   }
+
+   @Override
+   public Resource<File> resolve(String path)
+   {
+      try
+      {
+         Path newPath = getUnderlyingResourceObject().toPath().resolve(path);
+         return getResourceFactory().create(newPath.toFile());
+      }
+      catch (InvalidPathException e)
+      {
+         return null;
+      }
+   }
+
+   @Override
+   public <TYPE extends Resource<File>> TYPE resolve(final Class<TYPE> type, final String path)
+   {
+      try
+      {
+         Path newPath = getUnderlyingResourceObject().toPath().resolve(path);
+         return getResourceFactory().create(type, newPath.toFile());
+      }
+      catch (InvalidPathException e)
+      {
+         return null;
       }
    }
 }

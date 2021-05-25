@@ -1,12 +1,12 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.parser.java.facets;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.util.List;
 
@@ -73,6 +73,22 @@ public interface JavaSourceFacet extends ProjectFacet
    JavaResource saveJavaSource(JavaSource<?> source);
 
    /**
+    * Create or update a Java file <b>without formatting</b> in the primary source directory:
+    * {@link #getSourceDirectory()} - use information in the given
+    * {@link org.jboss.forge.roaster.model.source.JavaSource} to determine the appropriate package; packages will be
+    * created if necessary.
+    * 
+    * @param source
+    * @return
+    */
+   default JavaResource saveJavaSourceUnformatted(JavaSource<?> source)
+   {
+      JavaResource javaResource = getJavaResource(source);
+      javaResource.setContents(new ByteArrayInputStream(source.toUnformattedString().getBytes()), null);
+      return javaResource;
+   }
+
+   /**
     * Create or update a Java file in the primary test source directory: {@link #getTestSourceDirectory()} - use
     * information in the given {@link org.jboss.forge.roaster.model.source.JavaSource} to determine the appropriate
     * package; packages will be created if necessary.
@@ -81,6 +97,22 @@ public interface JavaSourceFacet extends ProjectFacet
     * @return The created or updated {@link JavaResource}
     */
    JavaResource saveTestJavaSource(JavaSource<?> source);
+
+   /**
+    * Create or update a Java file <b>without formatting</b> in the primary test source directory:
+    * {@link #getTestSourceDirectory()} - use information in the given
+    * {@link org.jboss.forge.roaster.model.source.JavaSource} to determine the appropriate package; packages will be
+    * created if necessary.
+    *
+    * @param source The java class to create
+    * @return The created or updated {@link JavaResource}
+    */
+   default JavaResource saveTestJavaSourceUnformatted(JavaSource<?> source)
+   {
+      JavaResource javaResource = getTestJavaResource(source);
+      javaResource.setContents(new ByteArrayInputStream(source.toUnformattedString().getBytes()), null);
+      return javaResource;
+   }
 
    /**
     * Return the {@link JavaClass} at the given path relative to {@link #getSourceDirectory()}.
@@ -128,5 +160,43 @@ public interface JavaSourceFacet extends ProjectFacet
     * @param visitor The {@link JavaResourceVisitor} that processes all the found java files. Cannot be null.
     */
    void visitJavaTestSources(JavaResourceVisitor visitor);
+
+   /**
+    * Create a package in the specified path under the {@link DirectoryResource} returned in
+    * {@link #getSourceDirectory()}
+    * 
+    * @param packageName the package name to be created
+    * @param createPackageInfo create a package-info.java file under this package?
+    * @return a {@link DirectoryResource} with the path for the new package
+    */
+   DirectoryResource savePackage(String packageName, boolean createPackageInfo);
+
+   /**
+    * Create a package in the specified path under the {@link DirectoryResource} returned in
+    * {@link #getTestSourceDirectory()}
+    * 
+    * @param packageName the package name to be created
+    * @param createPackageInfo create a package-info.java file under this package?
+    * @return a {@link DirectoryResource} with the path for the new package
+    */
+   DirectoryResource saveTestPackage(String packageName, boolean createPackageInfo);
+
+   /**
+    * Return the package in the specified path under the {@link DirectoryResource} returned in
+    * {@link #getSourceDirectory()}
+    * 
+    * @param packageName the package name to be created
+    * @return a {@link DirectoryResource} with the package path
+    */
+   DirectoryResource getPackage(String packageName);
+
+   /**
+    * Returns the package in the specified path under the {@link DirectoryResource} returned in
+    * {@link #getTestSourceDirectory()}
+    * 
+    * @param packageName the package name to be created
+    * @return a {@link DirectoryResource} with the package path
+    */
+   DirectoryResource getTestPackage(String packageName);
 
 }

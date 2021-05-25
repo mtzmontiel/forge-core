@@ -1,18 +1,15 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.maven.archetype;
 
 import java.io.InputStream;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.enterprise.inject.Vetoed;
 
 import org.apache.maven.archetype.catalog.Archetype;
 import org.apache.maven.archetype.catalog.ArchetypeCatalog;
@@ -25,7 +22,6 @@ import org.jboss.forge.furnace.util.Strings;
  *
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
-@Vetoed
 class URLArchetypeCatalogFactory implements ArchetypeCatalogFactory
 {
    private final Logger logger = Logger.getLogger(getClass().getName());
@@ -97,6 +93,6 @@ class URLArchetypeCatalogFactory implements ArchetypeCatalogFactory
    @Override
    public String toString()
    {
-      return "URLArchetypeCatalogFactory [name=" + name + ", catalogURL=" + catalogURL + "]";
+      return String.valueOf(catalogURL);
    }
 }

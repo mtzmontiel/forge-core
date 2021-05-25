@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -14,7 +14,6 @@ import java.util.Properties;
 
 import javax.enterprise.inject.Vetoed;
 
-import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.jboss.forge.furnace.util.Iterators;
 
 /**
@@ -24,17 +23,16 @@ import org.jboss.forge.furnace.util.Iterators;
 @Vetoed
 public class ConfigurationAdapter implements Configuration
 {
-   private org.apache.commons.configuration.HierarchicalConfiguration delegate;
+   private final org.apache.commons.configuration.Configuration delegate;
 
-   public HierarchicalConfiguration getDelegate()
-   {
-      return delegate;
-   }
-
-   public Configuration setDelegate(final org.apache.commons.configuration.HierarchicalConfiguration delegate)
+   public ConfigurationAdapter(final org.apache.commons.configuration.Configuration delegate)
    {
       this.delegate = delegate;
-      return this;
+   }
+
+   protected org.apache.commons.configuration.Configuration getDelegate()
+   {
+      return delegate;
    }
 
    /*
@@ -90,7 +88,7 @@ public class ConfigurationAdapter implements Configuration
    }
 
    @Override
-   public Iterator<?> getKeys(final String prefix)
+   public Iterator<String> getKeys(final String prefix)
    {
       // FORGE-1971: getDelegate().getKeys(prefix) returns an empty string as the key
       List<String> list = Iterators.asList(getDelegate().getKeys(prefix));
@@ -99,7 +97,7 @@ public class ConfigurationAdapter implements Configuration
    }
 
    @Override
-   public Iterator<?> getKeys()
+   public Iterator<String> getKeys()
    {
       // FORGE-1971: getDelegate().getKeys() returns an empty string as the key
       List<String> list = Iterators.asList(getDelegate().getKeys());
@@ -282,13 +280,13 @@ public class ConfigurationAdapter implements Configuration
    }
 
    @Override
-   public List<?> getList(final String key)
+   public List<Object> getList(final String key)
    {
       return getDelegate().getList(key);
    }
 
    @Override
-   public List<?> getList(final String key, final List<?> defaultValue)
+   public List<Object> getList(final String key, final List<?> defaultValue)
    {
       return getDelegate().getList(key, defaultValue);
    }

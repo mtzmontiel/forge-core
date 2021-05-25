@@ -1,3 +1,9 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package test.org.jboss.forge.addon.facets.constraints;
 
 /*
@@ -12,19 +18,13 @@ import javax.inject.Inject;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.facets.FacetFactory;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.AddonDependencies;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import test.org.jboss.forge.addon.facets.constraints.FacetA;
-import test.org.jboss.forge.addon.facets.constraints.FacetB;
-import test.org.jboss.forge.addon.facets.constraints.FacetC;
-import test.org.jboss.forge.addon.facets.constraints.FacetD;
 import test.org.jboss.forge.addon.facets.factory.MockFacet;
 import test.org.jboss.forge.addon.facets.factory.MockFaceted;
 
@@ -32,21 +32,14 @@ import test.org.jboss.forge.addon.facets.factory.MockFaceted;
 public class FacetConstraintsTest
 {
    @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:facets"),
-            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
-   })
-   public static ForgeArchive getDeployment()
+   @AddonDependencies
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap
+               .create(AddonArchive.class)
                .addPackages(true, FacetA.class.getPackage())
                .addClasses(MockFaceted.class, MockFacet.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.addon:facets"),
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi")
-               );
+               .addBeansXML();
       return archive;
    }
 

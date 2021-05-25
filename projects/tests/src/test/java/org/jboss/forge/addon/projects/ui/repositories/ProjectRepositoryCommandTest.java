@@ -1,15 +1,12 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.projects.ui.repositories;
 
 import java.util.List;
-
-import javax.inject.Inject;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -21,10 +18,11 @@ import org.jboss.forge.addon.projects.facets.DependencyFacet;
 import org.jboss.forge.addon.ui.controller.CommandController;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.test.UITestHarness;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.archive.AddonArchive;
+import org.jboss.forge.furnace.container.simple.Service;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.After;
 import org.junit.Assert;
@@ -39,47 +37,64 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class ProjectRepositoryCommandTest
 {
+
+   //
+   //
+   // @Deployment
+   // @AddonDeployments({
+   // @AddonDeployment(name = "org.jboss.forge.addon:projects"),
+   // @AddonDeployment(name = "org.jboss.forge.addon:maven"),
+   // @AddonDeployment(name = "org.jboss.forge.addon:ui-test-harness")
+   // })
+   // public static AddonArchive getDeployment()
+   // {
+   // AddonArchive archive = ShrinkWrap
+   // .create(AddonArchive.class)
+   // .addBeansXML()
+   // .addAsAddonDependencies(
+   // AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
+   // AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
+   // AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
+   // AddonDependencyEntry.create("org.jboss.forge.addon:ui-test-harness")
+   // );
+   //
+   // return archive;
+   // }
+
    @Deployment
-   @Dependencies({
+   @AddonDependencies({
+            @AddonDependency(name = "org.jboss.forge.furnace.container:simple"),
             @AddonDependency(name = "org.jboss.forge.addon:projects"),
             @AddonDependency(name = "org.jboss.forge.addon:maven"),
             @AddonDependency(name = "org.jboss.forge.addon:ui-test-harness")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui-test-harness")
-               );
+      AddonArchive archive = ShrinkWrap
+               .create(AddonArchive.class)
+               .addAsServiceProvider(Service.class, ProjectRepositoryCommandTest.class);
 
       return archive;
    }
 
-   @Inject
    private MavenBuildSystem build;
-
-   @Inject
    private ProjectFactory factory;
-
-   @Inject
    private UITestHarness testHarness;
-
    private Project project;
 
    @Before
    public void setUp()
    {
+      build = SimpleContainer.getServices(getClass().getClassLoader(), MavenBuildSystem.class).get();
+      factory = SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class).get();
+      testHarness = SimpleContainer.getServices(getClass().getClassLoader(), UITestHarness.class).get();
       project = factory.createTempProject(build);
    }
 
    @After
    public void tearDown()
    {
+      project.getRoot().delete(true);
       project = null;
    }
 

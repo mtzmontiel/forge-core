@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -45,19 +45,8 @@ import org.jboss.forge.roaster.model.source.JavaSource;
 @FacetConstraint({ JavaSourceFacet.class, ResourcesFacet.class })
 public class RegisterAsServiceCommand extends AbstractProjectCommand
 {
-   private final InputComponentFactory inputFactory;
-
    private UIInput<JavaResource> type;
    private UIInput<String> serviceType;
-
-   private final ProjectFactory projectFactory;
-
-   public RegisterAsServiceCommand()
-   {
-      Furnace furnace = SimpleContainer.getFurnace(this.getClass().getClassLoader());
-      this.inputFactory = furnace.getAddonRegistry().getServices(InputComponentFactory.class).get();
-      this.projectFactory = furnace.getAddonRegistry().getServices(ProjectFactory.class).get();
-   }
 
    @Override
    public UICommandMetadata getMetadata(UIContext context)
@@ -70,6 +59,7 @@ public class RegisterAsServiceCommand extends AbstractProjectCommand
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      InputComponentFactory inputFactory = builder.getInputComponentFactory();
       type = inputFactory.createInput("type", JavaResource.class);
       type.getFacet(HintsFacet.class).setInputType(InputType.JAVA_CLASS_PICKER);
       type.setRequired(true);
@@ -84,7 +74,8 @@ public class RegisterAsServiceCommand extends AbstractProjectCommand
       serviceType.setCompleter(new UICompleter<String>()
       {
          @Override
-         public Iterable<String> getCompletionProposals(UIContext context, InputComponent<?, String> input, String value)
+         public Iterable<String> getCompletionProposals(UIContext context, InputComponent<?, String> input,
+                  String value)
          {
             Set<String> result = new LinkedHashSet<>();
             if (type.getValue() != null)
@@ -162,7 +153,8 @@ public class RegisterAsServiceCommand extends AbstractProjectCommand
    @Override
    protected ProjectFactory getProjectFactory()
    {
-      return projectFactory;
+      Furnace furnace = SimpleContainer.getFurnace(this.getClass().getClassLoader());
+      return furnace.getAddonRegistry().getServices(ProjectFactory.class).get();
    }
 
 }

@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.resource;
 
 import java.io.InputStream;
@@ -51,4 +50,11 @@ public interface WriteableResource<T extends WriteableResource<T, R>, R> extends
     */
    OutputStream getResourceOutputStream();
 
+   /**
+    * Returns the {@link OutputStream} for this {@link WriteableResource}
+    * 
+    * @param append true if the {@link OutputStream} should append to the existing contents, false if it should
+    *           overwrite
+    */
+   OutputStream getResourceOutputStream(boolean append);
 }

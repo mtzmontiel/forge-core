@@ -4,7 +4,7 @@
    <parent>
       <groupId>org.jboss.forge.addon</groupId>
       <artifactId>parser-json-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
    </parent>
    <artifactId>parser-json</artifactId>
    <name>Forge - Json Parser Addon</name>
@@ -33,27 +33,10 @@
          <groupId>org.jboss.forge.addon</groupId>
          <artifactId>parser-json-impl</artifactId>
          <scope>runtime</scope>
-         <optional>true</optional>
       </dependency>
    </dependencies>
    <build>
       <plugins>
-         <plugin>
-            <groupId>org.jboss.forge.furnace</groupId>
-            <artifactId>furnace-maven-plugin</artifactId>
-            <executions>
-               <execution>
-                  <id>generate-dot</id>
-                  <phase>prepare-package</phase>
-                  <goals>
-                     <goal>generate-dot</goal>
-                  </goals>
-                  <configuration>
-                     <attach>true</attach>
-                  </configuration>
-               </execution>
-            </executions>
-         </plugin>
          <plugin>
             <artifactId>maven-jar-plugin</artifactId>
             <executions>
@@ -71,4 +54,29 @@
          </plugin>
       </plugins>
    </build>
+   <profiles>
+      <profile>
+         <id>release</id>
+         <build>
+            <plugins>
+               <plugin>
+                  <groupId>org.jboss.forge.furnace</groupId>
+                  <artifactId>furnace-maven-plugin</artifactId>
+                  <executions>
+                     <execution>
+                        <id>generate-dot</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                           <goal>generate-dot</goal>
+                        </goals>
+                        <configuration>
+                           <attach>true</attach>
+                        </configuration>
+                     </execution>
+                  </executions>
+               </plugin>
+            </plugins>
+         </build>
+      </profile>
+   </profiles>
 </project>

@@ -1,10 +1,9 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.cdi;
 
 import static org.junit.Assert.assertNotNull;
@@ -18,13 +17,13 @@ import org.jboss.forge.addon.facets.FacetFactory;
 import org.jboss.forge.addon.facets.FacetIsAmbiguousException;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.descriptor.api.beans10.BeansDescriptor;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -32,19 +31,14 @@ import org.junit.runner.RunWith;
 public class CDIFacetTest
 {
    @Deployment
-   @Dependencies({
+   @AddonDependencies({
             @AddonDependency(name = "org.jboss.forge.addon:javaee"),
-            @AddonDependency(name = "org.jboss.forge.addon:maven")
+            @AddonDependency(name = "org.jboss.forge.addon:maven"),
+            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      return ShrinkWrap.create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:javaee")
-               );
+      return ShrinkWrap.create(AddonArchive.class).addBeansXML();
    }
 
    @Inject
@@ -53,10 +47,17 @@ public class CDIFacetTest
    @Inject
    private FacetFactory facetFactory;
 
+   private Project project;
+
+   @Before
+   public void setUp()
+   {
+      project = projectFactory.createTempProject();
+   }
+
    @Test(expected = FacetIsAmbiguousException.class)
    public void testCannotInstallAmbiguousFacetType() throws Exception
    {
-      Project project = projectFactory.createTempProject();
       Assert.assertNotNull(project);
       facetFactory.install(project, CDIFacet.class);
       Assert.fail("Should not have been able to install ambiguous Facet.");
@@ -65,7 +66,6 @@ public class CDIFacetTest
    @Test
    public void testBeansXMLCreatedWhenInstalled_1_0() throws Exception
    {
-      Project project = projectFactory.createTempProject();
       CDIFacet<?> cdiFacet = facetFactory.install(project, CDIFacet_1_0.class);
       assertNotNull(cdiFacet);
       assertTrue(project.hasFacet(CDIFacet.class));
@@ -77,7 +77,6 @@ public class CDIFacetTest
    @Test
    public void testBeansXMLCreatedWhenInstalled_1_1() throws Exception
    {
-      Project project = projectFactory.createTempProject();
       CDIFacet<?> cdiFacet = facetFactory.install(project, CDIFacet_1_1.class);
       assertNotNull(cdiFacet);
       assertTrue(project.hasFacet(CDIFacet.class));
@@ -90,7 +89,6 @@ public class CDIFacetTest
    @Test
    public void testCDIFacet1_1OnlyInProject() throws Exception
    {
-      Project project = projectFactory.createTempProject();
       facetFactory.install(project, CDIFacet_1_1.class);
       projectFactory.invalidateCaches();
       project = projectFactory.findProject(project.getRoot());
@@ -101,7 +99,6 @@ public class CDIFacetTest
    @Test
    public void testCDIFacet1_0OnlyInProject() throws Exception
    {
-      Project project = projectFactory.createTempProject();
       facetFactory.install(project, CDIFacet_1_0.class);
       projectFactory.invalidateCaches();
       project = projectFactory.findProject(project.getRoot());

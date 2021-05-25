@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -23,11 +23,12 @@ import org.jboss.forge.addon.shell.mock.command.FooCommand;
 import org.jboss.forge.addon.shell.test.ShellTest;
 import org.jboss.forge.addon.ui.result.Failed;
 import org.jboss.forge.addon.ui.result.Result;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
+import org.jboss.forge.arquillian.AddonDeployment;
+import org.jboss.forge.arquillian.AddonDeployments;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,18 +43,17 @@ public class CommandCompletionTest
    private static final int QUANTITY = 5;
 
    @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:shell-test-harness")
+   @AddonDeployments({
+            @AddonDeployment(name = "org.jboss.forge.addon:shell-test-harness")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap.create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap.create(AddonArchive.class)
                .addClasses(FooCommand.class, Career.class)
                .addBeansXML()
                .addAsAddonDependencies(
                         AddonDependencyEntry.create("org.jboss.forge.addon:shell-test-harness"),
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi")
-               );
+                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"));
 
       return archive;
    }
@@ -65,6 +65,12 @@ public class CommandCompletionTest
    public void setUp() throws IOException
    {
       test.clearScreen();
+   }
+
+   @After
+   public void tearDown() throws Exception
+   {
+      test.close();
    }
 
    @Test
@@ -90,8 +96,8 @@ public class CommandCompletionTest
    @Test
    public void testValuesWithSpaceCompletion() throws Exception
    {
-      test.waitForCompletion("foocommand --valueWithSpaces Value\\ ",
-               "foocommand --valueWithSpaces Value",
+      test.waitForCompletion("foocommand --value-with-spaces Value\\ ",
+               "foocommand --value-with-spaces Value",
                QUANTITY, TimeUnit.SECONDS);
       String stdOut = test.waitForCompletion(QUANTITY, TimeUnit.SECONDS);
       Assert.assertThat(
@@ -103,7 +109,7 @@ public class CommandCompletionTest
    @Test
    public void testValuesWithSpaceCompletionWithSlash() throws Exception
    {
-      test.write("foocommand --valueWithSpaces Value\\");
+      test.write("foocommand --value-with-spaces Value\\");
       test.sendCompletionSignal();
       test.waitForBufferChanged(new Callable<Object>()
       {
@@ -134,7 +140,7 @@ public class CommandCompletionTest
    @Test
    public void testUISelectManyWithEnum() throws Exception
    {
-      test.waitForCompletion("foocommand --manyCareer ME", "foocommand --manyCareer M",
+      test.waitForCompletion("foocommand --many-career ME", "foocommand --many-career M",
                QUANTITY, TimeUnit.SECONDS);
       String stdOut = test.waitForCompletion(QUANTITY, TimeUnit.SECONDS);
       Assert.assertThat(stdOut,
@@ -144,7 +150,7 @@ public class CommandCompletionTest
    @Test
    public void testUISelectManyWithEnumWildcard() throws Exception
    {
-      test.waitForCompletion("foocommand --manyCareer ME", "foocommand --manyCareer M",
+      test.waitForCompletion("foocommand --many-career ME", "foocommand --many-career M",
                QUANTITY, TimeUnit.SECONDS);
       String stdOut = test.waitForCompletion(QUANTITY, TimeUnit.SECONDS);
       Assert.assertThat(stdOut,

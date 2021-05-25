@@ -1,5 +1,5 @@
-/*
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -67,8 +67,7 @@ public class TrackChangesSettings
          AutomaticTransactionCommandListener commandListener = new AutomaticTransactionCommandListener(
                   factory,
                   otherTransactionListener,
-                  aggregateChangeTxListener
-                  );
+                  aggregateChangeTxListener);
          registrations.add(shell.addCommandExecutionListener(commandListener));
          registrations.add(factory.addTransactionListener(aggregateChangeTxListener));
       }

@@ -1,15 +1,15 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.util;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.jboss.forge.addon.convert.CompositeConverter;
 import org.jboss.forge.addon.convert.Converter;
@@ -23,13 +23,14 @@ import org.jboss.forge.addon.ui.input.ManyValued;
 import org.jboss.forge.addon.ui.input.SelectComponent;
 import org.jboss.forge.addon.ui.input.SingleValued;
 import org.jboss.forge.addon.ui.input.UICompleter;
+import org.jboss.forge.furnace.util.Sets;
 import org.jboss.forge.furnace.util.Strings;
 
 /**
  * Utilities for {@link InputComponent} objects
- * 
+ *
  * @author <a href="mailto:ggastald@redhat.com">George Gastaldi</a>
- * 
+ *
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public final class InputComponents
@@ -71,7 +72,7 @@ public final class InputComponents
 
    /**
     * Sets the value in the provided {@link InputComponent}, making any necessary conversions
-    * 
+    *
     * @param component
     * @param value
     */
@@ -90,7 +91,7 @@ public final class InputComponents
 
    /**
     * Sets the default value in the provided {@link InputComponent}, making any necessary conversions
-    * 
+    *
     * @param component
     * @param value
     */
@@ -137,7 +138,7 @@ public final class InputComponents
       if (value != null)
       {
          List<Object> convertedValuesList = new ArrayList<>();
-         if (value instanceof Iterable)
+         if (value instanceof Iterable && !input.getValueType().isInstance(value))
          {
             for (Object itValue : (Iterable) value)
             {
@@ -173,8 +174,7 @@ public final class InputComponents
    }
 
    /**
-    * Returns the converted value that matches the input. Throws {@link IllegalArgumentException} if input is a
-    * {@link SelectComponent} and the value cannot be converted
+    * Returns the converted value that matches the input.
     */
    public static Object convertToUIInputValue(final ConverterFactory converterFactory,
             final InputComponent<?, ?> input, final Object value)
@@ -214,6 +214,7 @@ public final class InputComponents
          }
          else
          {
+
             Converter<String, Object> valueConverter = (Converter<String, Object>) input.getValueConverter();
             if (valueConverter != null)
             {
@@ -238,7 +239,52 @@ public final class InputComponents
       }
       else
       {
-         result = value;
+
+         Converter<String, Object> valueConverter = (Converter<String, Object>) input.getValueConverter();
+         if (valueConverter != null && value instanceof String)
+         {
+            result = valueConverter.convert((String) value);
+         }
+         else
+         {
+            // FORGE-2493: By setting the system property 'org.jboss.forge.ui.select_one_lenient_value' to true will
+            // allow UISelectOne to set values outside of its value choices. (pre-2.20.0.Final behavior)
+            if (input instanceof SelectComponent && !Boolean.getBoolean("org.jboss.forge.ui.select_one_lenient_value"))
+            {
+               SelectComponent<?, Object> selectComponent = (SelectComponent<?, Object>) input;
+               Set<Object> valueChoices = Sets.toSet(selectComponent.getValueChoices());
+               // Check if the value is contained in the valueChoices set
+               if (valueChoices != null && valueChoices.contains(value))
+               {
+                  result = value;
+               }
+               else
+               {
+                  // equals()/hashCode may not have been implemented. Trying to compare from the String representation
+                  Object chosenObj = null;
+                  if (valueChoices != null)
+                  {
+                     Converter<Object, String> selectConverter = getItemLabelConverter(converterFactory,
+                              selectComponent);
+                     String valueLabel = selectConverter.convert(value);
+                     for (Object valueChoice : valueChoices)
+                     {
+                        String convertedObj = selectConverter.convert(valueChoice);
+                        if (convertedObj.equals(valueLabel))
+                        {
+                           chosenObj = valueChoice;
+                           break;
+                        }
+                     }
+                  }
+                  result = chosenObj;
+               }
+            }
+            else
+            {
+               result = value;
+            }
+         }
       }
       return result;
    }
@@ -258,7 +304,8 @@ public final class InputComponents
       {
          ret = false;
       }
-      else if (value instanceof Iterable && !((Iterable) value).iterator().hasNext())
+      else if (!input.getValueType().isInstance(value) && value instanceof Iterable
+               && !((Iterable) value).iterator().hasNext())
       {
          ret = false;
       }
@@ -270,15 +317,15 @@ public final class InputComponents
    }
 
    /**
-    * Validate if the input has a value. If not, return the error message
-    * 
+    * Validate if an required and enabled input has a value. If not, return the error message.
+    *
     * @param input
     * @return
     */
    public static String validateRequired(final InputComponent<?, ?> input)
    {
       String requiredMessage = null;
-      if (input.isRequired() && !InputComponents.hasValue(input))
+      if (input.isEnabled() && input.isRequired() && !InputComponents.hasValue(input))
       {
          requiredMessage = input.getRequiredMessage();
          if (Strings.isNullOrEmpty(requiredMessage))
@@ -296,9 +343,9 @@ public final class InputComponents
    }
 
    /**
-    * 
+    *
     * Returns the item label converter, that is
-    * 
+    *
     * @param converterFactory May be null
     * @param input
     * @return the item label converter of a {@link SelectComponent} or a {@link Converter} instance from the
@@ -318,7 +365,7 @@ public final class InputComponents
 
    /**
     * Returns the label for this component
-    * 
+    *
     * @param input the input component
     * @param addColon should a colon be added in the end of the label ?
     * @return the label with a colon in the end if addColon is true
@@ -341,7 +388,7 @@ public final class InputComponents
 
    /**
     * Returns the completer associated with this {@link InputComponent} or null if it is not available
-    * 
+    *
     * @param inputComponent
     * @return the {@link UICompleter} associated with this {@link InputComponent} or null if not available or the
     *         {@link InputComponent} does not implement {@link HasCompleter}
@@ -362,14 +409,14 @@ public final class InputComponents
 
    /**
     * Determines whether two possibly-null objects are equal. Returns:
-    * 
+    *
     * <ul>
     * <li>{@code true} if {@code a} and {@code b} are both null.
     * <li>{@code true} if {@code a} and {@code b} are both non-null and they are equal according to
     * {@link Object#equals(Object)}.
     * <li>{@code false} in all other situations.
     * </ul>
-    * 
+    *
     * <p>
     * This assumes that any non-null objects passed to this function conform to the {@code equals()} contract.
     */

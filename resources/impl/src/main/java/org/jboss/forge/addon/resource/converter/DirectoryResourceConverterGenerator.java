@@ -1,17 +1,15 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.resource.converter;
-
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
 
 import org.jboss.forge.addon.convert.ConverterGenerator;
 import org.jboss.forge.addon.resource.DirectoryResource;
+import org.jboss.forge.addon.resource.ResourceFactory;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 
 /**
  * Generates {@link DirectoryResourceConverter}
@@ -21,9 +19,7 @@ import org.jboss.forge.addon.resource.DirectoryResource;
  */
 public class DirectoryResourceConverterGenerator implements ConverterGenerator
 {
-
-   @Inject
-   private Instance<DirectoryResourceConverter> converter;
+   private DirectoryResourceConverter directoryResourceConverter;
 
    @Override
    public boolean handles(Class<?> source, Class<?> target)
@@ -34,7 +30,13 @@ public class DirectoryResourceConverterGenerator implements ConverterGenerator
    @Override
    public DirectoryResourceConverter generateConverter(Class<?> source, Class<?> target)
    {
-      return converter.get();
+      if (directoryResourceConverter == null)
+      {
+         ResourceFactory resourceFactory = SimpleContainer
+                  .getServices(getClass().getClassLoader(), ResourceFactory.class).get();
+         directoryResourceConverter = new DirectoryResourceConverter(resourceFactory);
+      }
+      return directoryResourceConverter;
    }
 
    @Override

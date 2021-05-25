@@ -1,11 +1,14 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.validation.ui;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import javax.inject.Inject;
 import javax.validation.constraints.Pattern;
@@ -16,17 +19,19 @@ import org.jboss.forge.addon.javaee.ProjectHelper;
 import org.jboss.forge.addon.javaee.validation.CoreConstraints;
 import org.jboss.forge.addon.parser.java.resources.JavaResource;
 import org.jboss.forge.addon.projects.Project;
+import org.jboss.forge.addon.ui.controller.CommandController;
 import org.jboss.forge.addon.ui.controller.WizardCommandController;
+import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
 import org.jboss.forge.addon.ui.test.UITestHarness;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.forge.roaster.model.source.AnnotationSource;
 import org.jboss.forge.roaster.model.source.FieldSource;
 import org.jboss.forge.roaster.model.source.JavaClassSource;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -39,43 +44,58 @@ public class ValidationAddConstraintWizardTest
 {
 
    @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:ui"),
+   @AddonDependencies({
             @AddonDependency(name = "org.jboss.forge.addon:ui-test-harness"),
             @AddonDependency(name = "org.jboss.forge.addon:javaee"),
-            @AddonDependency(name = "org.jboss.forge.addon:maven")
+            @AddonDependency(name = "org.jboss.forge.addon:maven"),
+            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      return ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
-               .addClass(ProjectHelper.class)
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:javaee"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui-test-harness")
-               );
+      return ShrinkWrap.create(AddonArchive.class).addBeansXML().addClass(ProjectHelper.class);
    }
 
    @Inject
-   private UITestHarness testHarness;
+   private UITestHarness uiTestHarness;
 
    @Inject
    private ProjectHelper projectHelper;
 
+   private Project project;
+
+   @Before
+   public void setUp()
+   {
+      project = projectHelper.createJavaLibraryProject();
+      projectHelper.installValidation(project);
+   }
+
+   @Test
+   public void checkCommandMetadata() throws Exception
+   {
+      try (CommandController controller = uiTestHarness.createCommandController(ValidationAddConstraintWizard.class,
+               project.getRoot()))
+      {
+         controller.initialize();
+         // Checks the command metadata
+         assertTrue(controller.getCommand() instanceof ValidationAddConstraintWizard);
+         UICommandMetadata metadata = controller.getMetadata();
+         assertEquals("Constraint: Add", metadata.getName());
+         assertEquals("Java EE", metadata.getCategory().getName());
+         assertEquals("Bean Validation", metadata.getCategory().getSubCategory().getName());
+         assertEquals(1, controller.getInputs().size());
+         assertFalse("Project is created, shouldn't have targetLocation", controller.hasInput("targetLocation"));
+         assertTrue(controller.hasInput("javaClass"));
+      }
+   }
+
    @Test
    public void testRequiredFields() throws Exception
    {
-      Project project = projectHelper.createWebProject();
       projectHelper.installJPA_2_0(project);
-      projectHelper.installValidation(project);
       JavaResource jpaEntity = projectHelper.createJPAEntity(project, "Customer");
 
-      WizardCommandController wizard = testHarness.createWizardController(ValidationAddConstraintWizard.class,
+      WizardCommandController wizard = uiTestHarness.createWizardController(ValidationAddConstraintWizard.class,
                project.getRoot());
       wizard.initialize();
       // Page 1
@@ -114,7 +134,7 @@ public class ValidationAddConstraintWizardTest
       projectHelper.installValidation(project);
       JavaResource jpaEntity = projectHelper.createJPAEntity(project, "Customer");
 
-      WizardCommandController wizard = testHarness.createWizardController(ValidationAddConstraintWizard.class,
+      WizardCommandController wizard = uiTestHarness.createWizardController(ValidationAddConstraintWizard.class,
                project.getRoot());
       wizard.initialize();
       // Page 1

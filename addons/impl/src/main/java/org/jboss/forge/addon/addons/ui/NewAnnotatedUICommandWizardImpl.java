@@ -1,5 +1,5 @@
-/*
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -10,8 +10,6 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.inject.Inject;
-
 import org.jboss.forge.addon.parser.java.resources.JavaResource;
 import org.jboss.forge.addon.projects.ProjectFactory;
 import org.jboss.forge.addon.projects.ui.AbstractProjectCommand;
@@ -19,14 +17,15 @@ import org.jboss.forge.addon.ui.annotation.Command;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.input.UIInputMany;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
-import org.jboss.forge.addon.ui.metadata.WithAttributes;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
 import org.jboss.forge.addon.ui.util.Categories;
 import org.jboss.forge.addon.ui.util.Metadata;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.util.Lists;
 import org.jboss.forge.roaster.model.source.AnnotationSource;
 import org.jboss.forge.roaster.model.source.JavaClassSource;
@@ -38,15 +37,7 @@ import org.jboss.forge.roaster.model.source.MethodSource;
  */
 public class NewAnnotatedUICommandWizardImpl extends AbstractProjectCommand implements NewAnnotatedUICommandWizard
 {
-   @Inject
-   private ProjectFactory projectFactory;
-
-   @Inject
-   @WithAttributes(label = "Command name", required = true)
-   private UIInput<String> commandName;
-
-   @Inject
-   @WithAttributes(label = "Categories", required = false)
+   private UIInput<String> named;
    private UIInputMany<String> categories;
 
    @Override
@@ -60,8 +51,11 @@ public class NewAnnotatedUICommandWizardImpl extends AbstractProjectCommand impl
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
+      InputComponentFactory factory = builder.getInputComponentFactory();
+      named = factory.createInput("named", String.class).setLabel("Command name").setRequired(true);
+      categories = factory.createInputMany("categories", String.class).setLabel("Categories");
       categories.setDefaultValue(new ArrayList<String>());
-      builder.add(commandName).add(categories);
+      builder.add(named).add(categories);
    }
 
    @Override
@@ -69,7 +63,7 @@ public class NewAnnotatedUICommandWizardImpl extends AbstractProjectCommand impl
    {
       JavaResource javaResource = (JavaResource) context.getUIContext().getInitialSelection().get();
       JavaClassSource commandClass = javaResource.getJavaType();
-      commandClass = createCommand(commandClass, commandName.getValue(), categories.getValue());
+      commandClass = createCommand(commandClass, named.getValue(), categories.getValue());
       javaResource.setContents(commandClass);
       return Results.success("Annotated UICommand created");
    }
@@ -144,6 +138,6 @@ public class NewAnnotatedUICommandWizardImpl extends AbstractProjectCommand impl
    @Override
    protected ProjectFactory getProjectFactory()
    {
-      return projectFactory;
+      return SimpleContainer.getServices(getClass().getClassLoader(), ProjectFactory.class).get();
    }
 }

@@ -1,25 +1,26 @@
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.addon.git.ui;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import javax.inject.Inject;
-
-import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.forge.addon.git.gitignore.resources.GitIgnoreResource;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFactory;
+import org.jboss.forge.addon.resource.DirectoryResource;
 import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.ui.controller.CommandController;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.test.UITestHarness;
-import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.furnace.addons.AddonRegistry;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.util.Streams;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,47 +30,25 @@ import org.junit.runner.RunWith;
 public class GitIgnoreCommandsTest
 {
 
-   @Inject
+   private UITestHarness testHarness;
    private ProjectFactory projectFactory;
 
    private Project project;
 
-   @Deployment
-   @Dependencies({
-            @AddonDependency(name = "org.jboss.forge.addon:projects"),
-            @AddonDependency(name = "org.jboss.forge.addon:ui-test-harness"),
-            @AddonDependency(name = "org.jboss.forge.addon:maven"),
-            @AddonDependency(name = "org.jboss.forge.addon:git")
-   })
-   public static ForgeArchive getDeployment()
-   {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:git"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:ui-test-harness")
-               );
-
-      return archive;
-   }
-
-   @Inject
-   private UITestHarness testHarness;
-
    @Before
    public void setup() throws Exception
    {
+      AddonRegistry addonRegistry = SimpleContainer.getFurnace(getClass().getClassLoader()).getAddonRegistry();
+      this.projectFactory = addonRegistry.getServices(ProjectFactory.class).get();
+      this.testHarness = addonRegistry.getServices(UITestHarness.class).get();
       project = projectFactory.createTempProject();
       CommandController gitSetupCommandTester = testHarness.createCommandController(GitSetupCommand.class,
-               project.getRootDirectory());
+               project.getRoot());
       gitSetupCommandTester.initialize();
       gitSetupCommandTester.execute();
 
       CommandController gitIgnoreSetupTester = testHarness.createCommandController(GitIgnoreSetupCommand.class,
-               project.getRootDirectory());
+               project.getRoot());
       gitIgnoreSetupTester.initialize();
       gitIgnoreSetupTester.setValueFor("templateRepoDir", getCloneDir());
       gitIgnoreSetupTester.execute();
@@ -91,7 +70,7 @@ public class GitIgnoreCommandsTest
    public void testGitIgnoreUpdateRepo() throws Exception
    {
       CommandController gitIgnoreUpdateRepoTester = testHarness.createCommandController(
-               GitIgnoreUpdateRepoCommand.class, project.getRootDirectory());
+               GitIgnoreUpdateRepoCommand.class, project.getRoot());
       gitIgnoreUpdateRepoTester.initialize();
       Result result = gitIgnoreUpdateRepoTester.execute();
       assertTrue(result.getMessage().contains("Local gitignore repository updated"));
@@ -101,7 +80,7 @@ public class GitIgnoreCommandsTest
    public void testGitIgnoreListTemplates() throws Exception
    {
       CommandController gitIgnoreListTemplatesTester = testHarness.createCommandController(
-               GitIgnoreListTemplatesCommand.class, project.getRootDirectory());
+               GitIgnoreListTemplatesCommand.class, project.getRoot());
       gitIgnoreListTemplatesTester.initialize();
       Result result = gitIgnoreListTemplatesTester.execute();
       String listOutput = result.getMessage().substring(result.getMessage().indexOf("==="));
@@ -129,7 +108,7 @@ public class GitIgnoreCommandsTest
       executeGitIgnoreCreate();
 
       CommandController gitIgnoreAddPatternTester = testHarness.createCommandController(
-               GitIgnoreAddPatternCommand.class, project.getRootDirectory());
+               GitIgnoreAddPatternCommand.class, project.getRoot());
       gitIgnoreAddPatternTester.initialize();
       gitIgnoreAddPatternTester.setValueFor("pattern", "*.forge");
       gitIgnoreAddPatternTester.execute();
@@ -145,14 +124,14 @@ public class GitIgnoreCommandsTest
       executeGitIgnoreCreate();
 
       CommandController gitIgnoreRemovePatternTester = testHarness.createCommandController(
-               GitIgnoreRemovePatternCommand.class, project.getRootDirectory());
+               GitIgnoreRemovePatternCommand.class, project.getRoot());
       gitIgnoreRemovePatternTester.initialize();
-      gitIgnoreRemovePatternTester.setValueFor("pattern", "target/");
+      gitIgnoreRemovePatternTester.setValueFor("pattern", ".metadata");
       gitIgnoreRemovePatternTester.execute();
 
       GitIgnoreResource gitignore = gitIgnoreResource();
       String content = Streams.toString(gitignore.getResourceInputStream());
-      assertFalse(content.contains("target/"));
+      assertFalse(content.contains(".metadata"));
    }
 
    @Test
@@ -161,7 +140,7 @@ public class GitIgnoreCommandsTest
       executeGitIgnoreCreate();
 
       CommandController gitIgnoreListPatternsTester = testHarness.createCommandController(
-               GitIgnoreListPatternsCommand.class, project.getRootDirectory());
+               GitIgnoreListPatternsCommand.class, project.getRoot());
       gitIgnoreListPatternsTester.initialize();
       Result result = gitIgnoreListPatternsTester.execute();
 
@@ -171,19 +150,19 @@ public class GitIgnoreCommandsTest
 
    private Resource<?> getCloneDir()
    {
-      return project.getRootDirectory().getChild("gibo");
+      return project.getRoot().getChild("gibo");
    }
 
    private GitIgnoreResource gitIgnoreResource()
    {
-      return project.getRootDirectory()
+      return project.getRoot().reify(DirectoryResource.class)
                .getChildOfType(GitIgnoreResource.class, ".gitignore");
    }
 
    private void executeGitIgnoreCreate() throws Exception
    {
       CommandController gitIgnoreCreateTester = testHarness.createCommandController(GitIgnoreCreateCommand.class,
-               project.getRootDirectory());
+               project.getRoot());
       gitIgnoreCreateTester.initialize();
       gitIgnoreCreateTester.setValueFor("templates", "Eclipse Maven");
       gitIgnoreCreateTester.execute();
@@ -192,7 +171,7 @@ public class GitIgnoreCommandsTest
    @After
    public void tearDown() throws Exception
    {
-      project.getRootDirectory().delete(true);
+      project.getRoot().delete(true);
    }
 
 }

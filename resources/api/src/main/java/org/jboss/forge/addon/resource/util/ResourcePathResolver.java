@@ -1,15 +1,15 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.resource.util;
 
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,6 +42,9 @@ import org.jboss.forge.furnace.util.OperatingSystemUtils;
  */
 public class ResourcePathResolver
 {
+   private static final Pattern WILDCARDS_PATTERN = Pattern.compile(".*(\\?|\\*)+.*");
+   private static final Pattern WINDOWS_DRIVE_PATTERN = Pattern.compile("^[a-zA-Z]{1,1}:(/|\\\\).*");
+
    private int cursor;
    private final int length;
 
@@ -102,7 +105,7 @@ public class ResourcePathResolver
          }
       }
       // for windows, support drive letter prefixes here.
-      else if (isWindows && path.matches("^[a-zA-Z]{1,1}:(/|\\\\).*"))
+      else if (isWindows && WINDOWS_DRIVE_PATTERN.matcher(path).matches())
       {
          int idx = path.lastIndexOf(slashChar) + 1;
          r = factory.create(DirectoryResource.class, new File(path.substring(0, idx)).getAbsoluteFile());
@@ -163,7 +166,7 @@ public class ResourcePathResolver
             boolean first = --cursor == 0;
             tk = capture();
 
-            if (tk.matches(".*(\\?|\\*)+.*"))
+            if (WILDCARDS_PATTERN.matcher(tk).matches())
             {
                boolean startDot = tk.startsWith(".");
                String regex = pathspecToRegEx(tk.startsWith(slashString) ? tk.substring(1) : tk);
@@ -178,7 +181,7 @@ public class ResourcePathResolver
                   p = Pattern.compile(Pattern.quote(regex));
                }
 
-               List<Resource<?>> res = new LinkedList<>();
+               List<Resource<?>> res = new ArrayList<>();
 
                for (Resource<?> child : r.listResources())
                {

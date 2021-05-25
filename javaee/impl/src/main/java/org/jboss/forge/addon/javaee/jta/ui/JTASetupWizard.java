@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.jta.ui;
 
 import javax.inject.Inject;
@@ -48,18 +47,18 @@ public class JTASetupWizard extends AbstractJavaEECommand
 
    @Inject
    @WithAttributes(required = true, label = "JTA Version", defaultValue = "1.1")
-   private UISelectOne<JTAFacet> version;
+   private UISelectOne<JTAFacet> jtaVersion;
 
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
-      builder.add(version);
+      builder.add(jtaVersion);
    }
 
    @Override
    public Result execute(final UIExecutionContext context) throws Exception
    {
-      if (facetFactory.install(getSelectedProject(context), version.getValue()))
+      if (facetFactory.install(getSelectedProject(context), jtaVersion.getValue()))
       {
          return Results.success("JTA has been installed.");
       }

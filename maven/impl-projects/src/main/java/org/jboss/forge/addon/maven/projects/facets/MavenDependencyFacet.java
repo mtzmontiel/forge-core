@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -13,9 +13,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.enterprise.context.Dependent;
-import javax.inject.Inject;
 
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
@@ -38,17 +35,17 @@ import org.jboss.forge.addon.maven.projects.MavenFacet;
 import org.jboss.forge.addon.maven.projects.MavenFacetImpl;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.facets.DependencyFacet;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
+import org.jboss.forge.furnace.util.Strings;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@Dependent
 @FacetConstraint(MavenFacet.class)
 public class MavenDependencyFacet extends AbstractFacet<Project> implements DependencyFacet
 {
    private static final Logger log = Logger.getLogger(MavenDependencyFacet.class.getName());
 
-   @Inject
    private DependencyResolver resolver;
 
    @Override
@@ -73,8 +70,8 @@ public class MavenDependencyFacet extends AbstractFacet<Project> implements Depe
       boolean exists = false;
       for (org.apache.maven.model.Dependency dependency : dependencies)
       {
-         if (dependency.getGroupId().equals(depCoordinate.getGroupId())
-                  && dependency.getArtifactId().equals(depCoordinate.getArtifactId()))
+         Coordinate dependencyCoordinate = new MavenDependencyAdapter(dependency).getCoordinate();
+         if (Dependencies.areEquivalent(depCoordinate, dependencyCoordinate))
          {
             dependency.setVersion(depCoordinate.getVersion());
             exists = true;
@@ -193,7 +190,6 @@ public class MavenDependencyFacet extends AbstractFacet<Project> implements Depe
          {
             result.add(resolveProperties(dependency));
          }
-
       }
       catch (Exception e)
       {
@@ -254,10 +250,9 @@ public class MavenDependencyFacet extends AbstractFacet<Project> implements Depe
       MavenFacet maven = getFaceted().getFacet(MavenFacet.class);
       try
       {
-         DependencyManagement depMan = ((MavenFacetImpl) maven).getProjectBuildingResult().getProject()
-                  .getDependencyManagement();
+         DependencyManagement depMan = maven.getEffectiveModel().getDependencyManagement();
          List<Dependency> managedDependencies = (depMan != null ? MavenDependencyAdapter.fromMavenList(depMan
-                  .getDependencies()) : new ArrayList<Dependency>());
+                  .getDependencies()) : new ArrayList<>());
 
          for (Dependency managedDependency : managedDependencies)
          {
@@ -283,7 +278,7 @@ public class MavenDependencyFacet extends AbstractFacet<Project> implements Depe
       DependencyManagement depMan = pom.getDependencyManagement();
 
       List<Dependency> managedDependencies = depMan != null ? MavenDependencyAdapter.fromMavenList(depMan
-               .getDependencies()) : new ArrayList<Dependency>();
+               .getDependencies()) : new ArrayList<>();
 
       for (Dependency manDep : managedDependencies)
       {
@@ -348,7 +343,7 @@ public class MavenDependencyFacet extends AbstractFacet<Project> implements Depe
       DependencyManagement depMan = pom.getDependencyManagement();
 
       List<Dependency> managedDependencies = depMan != null ? MavenDependencyAdapter.fromMavenList(depMan
-               .getDependencies()) : new ArrayList<Dependency>();
+               .getDependencies()) : new ArrayList<>();
 
       for (Dependency managedDependency : managedDependencies)
       {
@@ -387,18 +382,19 @@ public class MavenDependencyFacet extends AbstractFacet<Project> implements Depe
    {
       DependencyQueryBuilder query = DependencyQueryBuilder.create(dep.getCoordinate()).setRepositories(
                getRepositories());
-      if (dep.getCoordinate().getVersion() != null && !dep.getCoordinate().getVersion().contains("SNAPSHOT"))
+      if (!Strings.isNullOrEmpty(dep.getCoordinate().getVersion())
+               && !dep.getCoordinate().getVersion().contains("SNAPSHOT"))
       {
          query.setFilter(new NonSnapshotDependencyFilter());
       }
-      List<Coordinate> versions = resolver.resolveVersions(query);
+      List<Coordinate> versions = getResolver().resolveVersions(query);
       return versions;
    }
 
    @Override
    public List<Coordinate> resolveAvailableVersions(final DependencyQuery query)
    {
-      List<Coordinate> versions = resolver.resolveVersions(query);
+      List<Coordinate> versions = getResolver().resolveVersions(query);
       return versions;
    }
 
@@ -512,9 +508,13 @@ public class MavenDependencyFacet extends AbstractFacet<Project> implements Depe
       return result;
    }
 
-   @Override
-   public void setFaceted(Project project)
+   /**
+    * @return the resolver
+    */
+   private DependencyResolver getResolver()
    {
-      super.setFaceted(project);
+      if (resolver == null)
+         resolver = SimpleContainer.getServices(getClass().getClassLoader(), DependencyResolver.class).get();
+      return resolver;
    }
 }

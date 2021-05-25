@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -12,9 +12,10 @@ import java.util.Map;
 
 import org.apache.maven.model.Model;
 import org.jboss.forge.addon.maven.resources.MavenModelResource;
-import org.jboss.forge.addon.projects.ProvidedProjectFacet;
 import org.jboss.forge.addon.projects.Project;
 import org.jboss.forge.addon.projects.ProjectFacet;
+import org.jboss.forge.addon.projects.ProvidedProjectFacet;
+import org.jboss.forge.addon.projects.building.BuildResult;
 import org.jboss.forge.addon.resource.DirectoryResource;
 
 /**
@@ -33,6 +34,18 @@ public interface MavenFacet extends ProvidedProjectFacet
     * Get the current Maven {@link Model} for this {@link Project}.
     */
    Model getModel();
+
+   /**
+    * Get the effective Maven {@link Model} for this {@link Project}.
+    */
+   Model getEffectiveModel();
+
+   /**
+    * Returns the {@link BuildResult} of the effective {@link Model} for this project.
+    * <p/>
+    * It is not affected by the builds executed in {@link #executeBuild(String...)}
+    */
+   BuildResult getEffectiveModelBuildResult();
 
    /**
     * Set the current Maven {@link Model} for this {@link Project}.
@@ -57,6 +70,14 @@ public interface MavenFacet extends ProvidedProjectFacet
     * @return <code>true</code> on success or <code>false</code> on failure.
     */
    boolean executeMaven(List<String> parameters);
+
+   /**
+    * Execute embedded Maven with the given arguments. Redirects the output and error output to the provided
+    * {@link PrintStream}s
+    *
+    * @return <code>true</code> on success or <code>false</code> on failure.
+    */
+   boolean executeMaven(List<String> parameters,final PrintStream out, final PrintStream err);
 
    /**
     * Execute Maven with the given arguments.

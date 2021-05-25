@@ -1,14 +1,14 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.controller;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -16,6 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,11 +25,15 @@ import org.jboss.forge.addon.ui.command.CommandExecutionListener;
 import org.jboss.forge.addon.ui.command.UICommand;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
+import org.jboss.forge.addon.ui.context.UISelection;
 import org.jboss.forge.addon.ui.controller.CommandController;
 import org.jboss.forge.addon.ui.controller.WizardCommandController;
+import org.jboss.forge.addon.ui.impl.context.DelegatingUIContext;
+import org.jboss.forge.addon.ui.impl.context.UIBuilderImpl;
 import org.jboss.forge.addon.ui.impl.context.UIExecutionContextImpl;
 import org.jboss.forge.addon.ui.impl.context.UINavigationContextImpl;
 import org.jboss.forge.addon.ui.input.InputComponent;
+import org.jboss.forge.addon.ui.input.InputComponentFactory;
 import org.jboss.forge.addon.ui.input.UIPrompt;
 import org.jboss.forge.addon.ui.metadata.UICommandMetadata;
 import org.jboss.forge.addon.ui.output.UIMessage;
@@ -37,12 +42,14 @@ import org.jboss.forge.addon.ui.result.NavigationResult;
 import org.jboss.forge.addon.ui.result.NavigationResultEntry;
 import org.jboss.forge.addon.ui.result.Result;
 import org.jboss.forge.addon.ui.result.Results;
+import org.jboss.forge.addon.ui.result.navigation.NavigationResultTransformer;
 import org.jboss.forge.addon.ui.wizard.UIWizard;
 import org.jboss.forge.addon.ui.wizard.WizardExecutionListener;
 import org.jboss.forge.furnace.addons.AddonRegistry;
+import org.jboss.forge.furnace.util.Assert;
+import org.jboss.forge.furnace.util.Lists;
 
 /**
- *
  * Implementation for the {@link WizardCommandController} interface
  *
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
@@ -68,11 +75,13 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
    private int flowPointer = 0;
 
    private final CommandControllerFactoryImpl controllerFactory;
+   private final InputComponentFactory inputComponentFactory;
 
    public WizardCommandControllerImpl(UIContext context, AddonRegistry addonRegistry, UIRuntime runtime,
             UIWizard initialCommand, CommandControllerFactoryImpl controllerFactory)
    {
       super(addonRegistry, runtime, initialCommand, context);
+      this.inputComponentFactory = addonRegistry.getServices(InputComponentFactory.class).get();
       this.controllerFactory = controllerFactory;
       flow.add(createEntry(initialCommand, false));
    }
@@ -80,32 +89,37 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
    /**
     * Refreshes the current flow so it's possible to eagerly fetch all the steps
     */
-   private void refreshFlow()
+   private synchronized void refreshFlow()
    {
       try
       {
          initialize();
       }
-      catch (Exception e1)
+      catch (Exception e)
       {
-         // TODO Auto-generated catch block
-         e1.printStackTrace();
+         throw new IllegalStateException("Error while initializing wizard", e);
       }
       int currentFlowPointer = this.flowPointer;
-      this.flowPointer = 0;
-      while (canMoveToNextStep())
+      try
       {
-         try
+         this.flowPointer = 0;
+         while (canMoveToNextStep())
          {
-            next().initialize();
+            try
+            {
+               next().initialize();
+            }
+            catch (Exception e)
+            {
+               throw new IllegalStateException("Error while moving to the next wizard step", e);
+            }
          }
-         catch (Exception e)
-         {
-            break;
-         }
+         cleanSubsequentStalePages();
       }
-      cleanSubsequentStalePages();
-      this.flowPointer = currentFlowPointer;
+      finally
+      {
+         this.flowPointer = currentFlowPointer;
+      }
    }
 
    @Override
@@ -125,6 +139,7 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
    {
       assertInitialized();
       assertValid();
+      Assert.isTrue(canExecute(), "Controller cannot be executed");
       UIProgressMonitor progressMonitor = runtime.createProgressMonitor(context);
       UIPrompt prompt = runtime.createPrompt(context);
       UIExecutionContextImpl executionContext = new UIExecutionContextImpl(context, progressMonitor, prompt);
@@ -240,6 +255,18 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
    }
 
    @Override
+   public InputComponent<?, ?> getInput(String inputName)
+   {
+      return getInputs().get(inputName);
+   }
+
+   @Override
+   public boolean hasInput(String inputName)
+   {
+      return getInputs().containsKey(inputName);
+   }
+
+   @Override
    public UICommandMetadata getMetadata()
    {
       return getCurrentController().getMetadata();
@@ -322,7 +349,6 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
       return true;
    }
 
-   @SuppressWarnings("unchecked")
    @Override
    public WizardCommandController next() throws Exception
    {
@@ -359,8 +385,7 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
                }
                else
                {
-                  UICommandMetadata metadata = subflow.peek().controller.getCommand().getMetadata(context);
-                  command = createCommand((Class<? extends UICommand>) metadata.getType());
+                  command = subflow.peek().controller.getCommand();
                }
             }
             else
@@ -388,7 +413,8 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
    /**
     * Remove stale pages in case of navigational changes
     */
-   private void cleanSubsequentStalePages()
+
+   private synchronized void cleanSubsequentStalePages()
    {
       // FIXME: Workaround until FORGE-1704 is fixed
       if (flowPointer == 0)
@@ -459,6 +485,63 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
       return this;
    }
 
+   @Override
+   public List<UICommandMetadata> getWizardStepsMetadata()
+   {
+      List<UICommandMetadata> stepsMetadata = new ArrayList<>();
+      // Do not change anything in the original UIContext
+      final Map<Object, Object> attributeMap = new HashMap<>(context.getAttributeMap());
+      UIContext safeContext = new DelegatingUIContext(context, context.getProvider())
+      {
+         @Override
+         public Map<Object, Object> getAttributeMap()
+         {
+            return attributeMap;
+         }
+
+         @Override
+         public <SELECTIONTYPE> void setSelection(UISelection<SELECTIONTYPE> selection)
+         {
+            // Do nothing
+         }
+
+         @Override
+         public <SELECTIONTYPE> void setSelection(SELECTIONTYPE resource)
+         {
+            // Do nothing
+         }
+      };
+      addCommandMetadata(initialCommand, safeContext, stepsMetadata);
+      return stepsMetadata;
+   }
+
+   private void addCommandMetadata(UICommand command, UIContext context, List<UICommandMetadata> stepsMetadata)
+   {
+      UIBuilderImpl builder = new UIBuilderImpl(context, inputComponentFactory);
+      try
+      {
+         command.initializeUI(builder);
+      }
+      catch (Exception e)
+      {
+         logger.log(Level.SEVERE, "Error while initializing " + command, e);
+      }
+      // Empty inputs are not rendered
+      if (builder.getInputs().size() > 0)
+      {
+         stepsMetadata.add(command.getMetadata(context));
+      }
+      NavigationResultEntry[] nextEntries = getNextFrom(command);
+      if (nextEntries != null)
+      {
+         for (NavigationResultEntry nextEntry : nextEntries)
+         {
+            UICommand nextCommand = nextEntry.getCommand(addonRegistry, context);
+            addCommandMetadata(nextCommand, context, stepsMetadata);
+         }
+      }
+   }
+
    protected int getFlowPointer()
    {
       return flowPointer;
@@ -497,12 +580,6 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
       return command;
    }
 
-   private UICommand createCommand(Class<? extends UICommand> commandClass)
-   {
-      UICommand command = addonRegistry.getServices(commandClass).get();
-      return command;
-   }
-
    private WizardStepEntry createEntry(UICommand command, boolean subflowHead)
    {
       CommandController controller = controllerFactory.doCreateSingleController(context, runtime, command);
@@ -511,25 +588,31 @@ class WizardCommandControllerImpl extends AbstractCommandController implements W
 
    private NavigationResultEntry[] getNextFrom(UICommand command)
    {
-      NavigationResultEntry[] result = null;
+      NavigationResult next = null;
+      UINavigationContextImpl navigationContext = new UINavigationContextImpl(context, initialCommand, command);
       if (command instanceof UIWizard)
       {
-         NavigationResult next;
          try
          {
-            next = ((UIWizard) command).next(new UINavigationContextImpl(context));
+            next = ((UIWizard) command).next(navigationContext);
          }
          catch (Exception e)
          {
             logger.log(Level.SEVERE, "Cannot fetch the next steps from " + command, e);
             next = null;
          }
-         if (next != null)
+      }
+      // Transform the existing NavigationResult
+      Set<NavigationResultTransformer> transformers = new TreeSet<>((o1, o2) -> o2.priority() - o1.priority());
+      transformers.addAll(Lists.toList(addonRegistry.getServices(NavigationResultTransformer.class)));
+      for (NavigationResultTransformer transformer : transformers)
+      {
+         if (transformer.handles(navigationContext))
          {
-            result = next.getNext();
+            next = transformer.transform(navigationContext, next);
          }
       }
-      return result;
+      return next == null ? null : next.getNext();
    }
 
    private static class WizardStepEntry

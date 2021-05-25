@@ -1,12 +1,12 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.annotation;
 
+import org.jboss.forge.addon.ui.UIDesktop;
 import org.jboss.forge.addon.ui.UIProvider;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
@@ -28,7 +28,8 @@ class ReservedParameters
                || type == UIOutput.class
                || type == UIProgressMonitor.class
                || type == UIProvider.class
-               || type == UIExecutionContext.class;
+               || type == UIExecutionContext.class
+               || type == UIDesktop.class;
    }
 
    public static Object getReservedParameter(UIExecutionContext context, Class<?> type)
@@ -53,9 +54,13 @@ class ReservedParameters
       {
          return context.getProgressMonitor();
       }
-      else if (type == UIExecutionContext.class) 
+      else if (type == UIExecutionContext.class)
       {
          return context;
+      }
+      else if (type == UIDesktop.class)
+      {
+         return context.getUIContext().getProvider().getDesktop();
       }
       else
       {

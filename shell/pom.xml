@@ -3,7 +3,7 @@
    <parent>
       <groupId>org.jboss.forge</groupId>
       <artifactId>forge-parent</artifactId>
-      <version>2.11.1-SNAPSHOT</version>
+      <version>3.9.9-SNAPSHOT</version>
       <relativePath>../pom.xml</relativePath>
    </parent>
 
@@ -23,8 +23,8 @@
    </modules>
 
    <properties>
-      <version.aesh>0.56.1</version.aesh>
-      <version.aesh.extensions>0.56.1</version.aesh.extensions>
+      <version.aesh>0.65.1</version.aesh>
+      <version.aesh.extensions>0.65.1</version.aesh.extensions>
    </properties>
 
    <dependencyManagement>

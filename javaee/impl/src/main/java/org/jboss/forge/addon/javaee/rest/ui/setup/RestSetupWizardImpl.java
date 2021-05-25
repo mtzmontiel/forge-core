@@ -1,10 +1,9 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.javaee.rest.ui.setup;
 
 import java.util.concurrent.Callable;
@@ -13,6 +12,7 @@ import javax.inject.Inject;
 
 import org.jboss.forge.addon.convert.Converter;
 import org.jboss.forge.addon.facets.FacetFactory;
+import org.jboss.forge.addon.facets.constraints.FacetConstraint;
 import org.jboss.forge.addon.javaee.rest.RestFacet;
 import org.jboss.forge.addon.javaee.rest.config.RestConfigurationStrategy;
 import org.jboss.forge.addon.javaee.rest.config.RestConfigurationStrategyFactory;
@@ -20,10 +20,10 @@ import org.jboss.forge.addon.javaee.rest.ui.RestSetupWizard;
 import org.jboss.forge.addon.javaee.ui.AbstractJavaEECommand;
 import org.jboss.forge.addon.parser.java.facets.JavaSourceFacet;
 import org.jboss.forge.addon.projects.Project;
+import org.jboss.forge.addon.projects.stacks.annotations.StackConstraint;
 import org.jboss.forge.addon.ui.context.UIBuilder;
 import org.jboss.forge.addon.ui.context.UIContext;
 import org.jboss.forge.addon.ui.context.UIExecutionContext;
-import org.jboss.forge.addon.ui.context.UIValidationContext;
 import org.jboss.forge.addon.ui.hints.InputType;
 import org.jboss.forge.addon.ui.input.UIInput;
 import org.jboss.forge.addon.ui.input.UISelectOne;
@@ -40,6 +40,8 @@ import org.jboss.forge.roaster.model.source.JavaClassSource;
  *
  * @author <a href="ggastald@redhat.com">George Gastaldi</a>
  */
+@FacetConstraint(JavaSourceFacet.class)
+@StackConstraint(RestFacet.class)
 public class RestSetupWizardImpl extends AbstractJavaEECommand implements RestSetupWizard
 {
    @Override
@@ -76,11 +78,17 @@ public class RestSetupWizardImpl extends AbstractJavaEECommand implements RestSe
    @Override
    public void initializeUI(UIBuilder builder) throws Exception
    {
-      configureActivationStrategy(builder.getUIContext());
-      builder.add(jaxrsVersion).add(applicationPath).add(config).add(targetPackage).add(className);
+      Project project = getSelectedProject(builder);
+      if (filterValueChoicesFromStack(project, jaxrsVersion))
+      {
+         builder.add(jaxrsVersion);
+      }
+      configureActivationStrategy(builder.getUIContext(), project);
+
+      builder.add(applicationPath).add(config).add(targetPackage).add(className);
    }
 
-   private void configureActivationStrategy(UIContext context)
+   private void configureActivationStrategy(UIContext context, Project project)
    {
       config.setDefaultValue(RestActivatorType.APP_CLASS);
       Callable<Boolean> appClassChosen = new Callable<Boolean>()
@@ -104,14 +112,7 @@ public class RestSetupWizardImpl extends AbstractJavaEECommand implements RestSe
       }
       targetPackage.setRequired(appClassChosen).setEnabled(appClassChosen);
       className.setRequired(appClassChosen).setEnabled(appClassChosen);
-      Project project = getSelectedProject(context);
       targetPackage.setDefaultValue(project.getFacet(JavaSourceFacet.class).getBasePackage() + ".rest");
-   }
-
-   @Override
-   public void validate(UIValidationContext validator)
-   {
-      super.validate(validator);
    }
 
    @Override

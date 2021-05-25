@@ -100,19 +100,32 @@ public class ${entityTable}Endpoint
    @Consumes(${contentType})
    public Response update(@PathParam("id") ${idType} id, ${dto.getName()} dto)
    {
-      TypedQuery<${entity.getName()}> findByIdQuery = em.createQuery("${selectExpression} ${idClause} ${orderClause}", ${entity.getName()}.class);
-      findByIdQuery.setParameter("entityId", id);
-      ${entity.getName()} entity;
-      try {
-         entity = findByIdQuery.getSingleResult();
-      } catch (NoResultException nre) {
-         entity = null;
+      if (dto == null) 
+      {
+      	return Response.status(Status.BAD_REQUEST).build();
+      }
+      <#if idIsPrimitive>
+      if (id != dto.${getIdStatement})
+      <#else>
+      if (id == null)
+      {
+      	return Response.status(Status.BAD_REQUEST).build();
+      }
+      if (!id.equals(dto.${getIdStatement}))
+      </#if>
+      {
+      	return Response.status(Status.CONFLICT).entity(dto).build();
+      }
+      ${entity.getName()} entity = em.find(${entity.getName()}.class, id); 
+      if (entity == null) 
+      {
+		return Response.status(Status.NOT_FOUND).build();
       }
       entity = dto.fromDTO(entity, em);
       try {
         entity = em.merge(entity);
       } catch (OptimisticLockException e) {
-          return Response.status(Response.Status.CONFLICT).entity(e.getEntity()).build();
+        return Response.status(Status.CONFLICT).entity(e.getEntity()).build();
       }
       return Response.noContent().build();
    }

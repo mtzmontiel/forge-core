@@ -1,15 +1,19 @@
-/*
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.scaffold;
+
+import static org.jboss.forge.addon.scaffold.mock.MockProvider.PROVIDER_DESCRIPTION;
+import static org.jboss.forge.addon.scaffold.mock.MockProvider.PROVIDER_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.inject.Inject;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -18,61 +22,57 @@ import org.jboss.forge.addon.resource.Resource;
 import org.jboss.forge.addon.resource.ResourceFactory;
 import org.jboss.forge.addon.scaffold.mock.MockProvider;
 import org.jboss.forge.addon.scaffold.mock.Scaffoldable;
+import org.jboss.forge.addon.scaffold.mock.ScaffoldableResourceGenerator;
 import org.jboss.forge.addon.scaffold.mock.ScaffoldedResource;
+import org.jboss.forge.addon.scaffold.mock.ScaffoldedResourceGenerator;
 import org.jboss.forge.addon.scaffold.spi.ScaffoldGenerationContext;
 import org.jboss.forge.addon.scaffold.spi.ScaffoldProvider;
 import org.jboss.forge.addon.scaffold.spi.ScaffoldSetupContext;
+import org.jboss.forge.arquillian.AddonDependencies;
 import org.jboss.forge.arquillian.AddonDependency;
-import org.jboss.forge.arquillian.Dependencies;
-import org.jboss.forge.arquillian.archive.ForgeArchive;
+import org.jboss.forge.arquillian.archive.AddonArchive;
 import org.jboss.forge.furnace.addons.AddonRegistry;
-import org.jboss.forge.furnace.repositories.AddonDependencyEntry;
+import org.jboss.forge.furnace.container.simple.Service;
+import org.jboss.forge.furnace.container.simple.lifecycle.SimpleContainer;
 import org.jboss.forge.furnace.services.Imported;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.jboss.forge.addon.scaffold.mock.MockProvider.PROVIDER_DESCRIPTION;
-import static org.jboss.forge.addon.scaffold.mock.MockProvider.PROVIDER_NAME;
-import static org.junit.Assert.*;
 
 @RunWith(Arquillian.class)
 public class ScaffoldAddonTest
 {
    @Deployment
-   @Dependencies({
+   @AddonDependencies({
             @AddonDependency(name = "org.jboss.forge.addon:projects"),
             @AddonDependency(name = "org.jboss.forge.addon:scaffold"),
             @AddonDependency(name = "org.jboss.forge.addon:maven"),
             @AddonDependency(name = "org.jboss.forge.addon:parser-java"),
-            @AddonDependency(name = "org.jboss.forge.furnace.container:cdi")
+            @AddonDependency(name = "org.jboss.forge.furnace.container:simple")
    })
-   public static ForgeArchive getDeployment()
+   public static AddonArchive getDeployment()
    {
-      ForgeArchive archive = ShrinkWrap
-               .create(ForgeArchive.class)
+      AddonArchive archive = ShrinkWrap
+               .create(AddonArchive.class)
                .addPackage(MockProvider.class.getPackage())
                .addClass(ProjectHelper.class)
-               .addBeansXML()
-               .addAsAddonDependencies(
-                        AddonDependencyEntry.create("org.jboss.forge.addon:projects"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:scaffold"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:maven"),
-                        AddonDependencyEntry.create("org.jboss.forge.addon:parser-java"),
-                        AddonDependencyEntry.create("org.jboss.forge.furnace.container:cdi")
-               );
-
+               .addAsServiceProvider(Service.class, ScaffoldAddonTest.class, ScaffoldableResourceGenerator.class,
+                        ScaffoldedResourceGenerator.class, ProjectHelper.class, MockProvider.class);
       return archive;
    }
 
-   @Inject
    private AddonRegistry registry;
-
-   @Inject
    private ProjectHelper projectHelper;
-
-   @Inject
    private ResourceFactory resourceFactory;
+
+   @Before
+   public void setUp()
+   {
+      registry = SimpleContainer.getFurnace(getClass().getClassLoader()).getAddonRegistry();
+      projectHelper = SimpleContainer.getServices(getClass().getClassLoader(), ProjectHelper.class).get();
+      resourceFactory = SimpleContainer.getServices(getClass().getClassLoader(), ResourceFactory.class).get();
+   }
 
    @Test
    public void testCanLoadScaffoldProviders() throws Exception

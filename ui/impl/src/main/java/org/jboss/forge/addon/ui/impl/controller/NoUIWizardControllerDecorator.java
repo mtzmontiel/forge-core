@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.ui.impl.controller;
 
 import java.util.List;
@@ -94,9 +93,9 @@ public class NoUIWizardControllerDecorator implements WizardCommandController
                }
             }
          }
-         catch (Exception ignored)
+         catch (Exception e)
          {
-
+            log.log(Level.SEVERE, "Error while navigating to previous step", e);
          }
          finally
          {
@@ -138,6 +137,12 @@ public class NoUIWizardControllerDecorator implements WizardCommandController
       }
       controller.setFlowPointer(pointer);
       return this;
+   }
+
+   @Override
+   public List<UICommandMetadata> getWizardStepsMetadata()
+   {
+      return controller.getWizardStepsMetadata();
    }
 
    @Override
@@ -187,6 +192,18 @@ public class NoUIWizardControllerDecorator implements WizardCommandController
    public Map<String, InputComponent<?, ?>> getInputs()
    {
       return controller.getInputs();
+   }
+
+   @Override
+   public InputComponent<?, ?> getInput(String inputName)
+   {
+      return getInputs().get(inputName);
+   }
+
+   @Override
+   public boolean hasInput(String inputName)
+   {
+      return getInputs().containsKey(inputName);
    }
 
    @Override

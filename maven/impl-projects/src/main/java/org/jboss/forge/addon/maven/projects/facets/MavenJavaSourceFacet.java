@@ -1,5 +1,5 @@
-/*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+/**
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -9,8 +9,6 @@ package org.jboss.forge.addon.maven.projects.facets;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.enterprise.context.Dependent;
 
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
@@ -28,14 +26,16 @@ import org.jboss.forge.addon.resource.ResourceException;
 import org.jboss.forge.addon.resource.ResourceFilter;
 import org.jboss.forge.addon.resource.visit.ResourceVisit;
 import org.jboss.forge.furnace.util.Strings;
+import org.jboss.forge.roaster.Roaster;
+import org.jboss.forge.roaster.model.source.JavaPackageInfoSource;
 import org.jboss.forge.roaster.model.source.JavaSource;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@Dependent
 @FacetConstraint(MavenFacet.class)
-public class MavenJavaSourceFacet extends AbstractFacet<Project> implements JavaSourceFacet
+@FacetConstraint(MavenJavaCompilerFacet.class)
+public class MavenJavaSourceFacet extends AbstractFacet<Project>implements JavaSourceFacet
 {
    @Override
    public List<DirectoryResource> getSourceDirectories()
@@ -108,7 +108,7 @@ public class MavenJavaSourceFacet extends AbstractFacet<Project> implements Java
       {
          srcFolderName = "src" + File.separator + "main" + File.separator + "java";
       }
-      DirectoryResource projectRoot = getFaceted().getRootDirectory();
+      DirectoryResource projectRoot = getFaceted().getRoot().reify(DirectoryResource.class);
       return projectRoot.getChildDirectory(srcFolderName);
    }
 
@@ -126,7 +126,7 @@ public class MavenJavaSourceFacet extends AbstractFacet<Project> implements Java
       {
          srcFolderName = "src" + File.separator + "test" + File.separator + "java";
       }
-      DirectoryResource projectRoot = getFaceted().getRootDirectory();
+      DirectoryResource projectRoot = getFaceted().getRoot().reify(DirectoryResource.class);
       return projectRoot.getChildDirectory(srcFolderName);
    }
 
@@ -139,12 +139,10 @@ public class MavenJavaSourceFacet extends AbstractFacet<Project> implements Java
    @Override
    public boolean install()
    {
-      if (!this.isInstalled())
+      for (DirectoryResource folder : this.getSourceDirectories())
       {
-         for (DirectoryResource folder : this.getSourceDirectories())
-         {
-            folder.mkdirs();
-         }
+         folder.mkdirs();
+         savePackage(getBasePackage(), false);
       }
       return isInstalled();
    }
@@ -241,6 +239,52 @@ public class MavenJavaSourceFacet extends AbstractFacet<Project> implements Java
             return type instanceof JavaResource;
          }
       });
+   }
+
+   @Override
+   public DirectoryResource savePackage(String packageName, boolean createPackageInfo)
+   {
+      DirectoryResource child = getPackage(packageName);
+      if (!child.exists())
+      {
+         child.mkdirs();
+      }
+      if (createPackageInfo)
+      {
+         JavaPackageInfoSource packageInfo = Roaster.create(JavaPackageInfoSource.class).setPackage(packageName);
+         JavaResource resource = child.getChild("package-info.java").reify(JavaResource.class);
+         resource.setContents(packageInfo);
+      }
+      return child;
+   }
+
+   @Override
+   public DirectoryResource saveTestPackage(String packageName, boolean createPackageInfo)
+   {
+      DirectoryResource child = getTestPackage(packageName);
+      if (!child.exists())
+      {
+         child.mkdirs();
+      }
+      if (createPackageInfo)
+      {
+         JavaPackageInfoSource packageInfo = Roaster.create(JavaPackageInfoSource.class).setPackage(packageName);
+         JavaResource resource = child.getChild("package-info.java").reify(JavaResource.class);
+         resource.setContents(packageInfo);
+      }
+      return child;
+   }
+
+   @Override
+   public DirectoryResource getPackage(String packageName)
+   {
+      return getSourceDirectory().getChildDirectory(packageName.replace('.', File.separatorChar));
+   }
+
+   @Override
+   public DirectoryResource getTestPackage(String packageName)
+   {
+      return getTestSourceDirectory().getChildDirectory(packageName.replace('.', File.separatorChar));
    }
 
 }

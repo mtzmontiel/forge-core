@@ -1,10 +1,8 @@
 /**
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
- * Copied from: ModeShape (http://www.jboss.org/modeshape/)
  */
 package org.jboss.forge.addon.text;
 
@@ -14,7 +12,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jboss.forge.furnace.container.simple.Service;
 import org.jboss.forge.furnace.util.Assert;
 import org.jboss.forge.furnace.util.Strings;
 
@@ -24,7 +21,7 @@ import org.jboss.forge.furnace.util.Strings;
  * href="http://www.rubyonrails.org">Ruby on Rails</a>, which is distributed under the <a
  * href="http://wiki.rubyonrails.org/rails/pages/License">Rails license</a>.
  */
-public class Inflector implements Service
+public class Inflector
 {
    public Inflector()
    {
@@ -242,7 +239,7 @@ public class Inflector implements Service
     * Examples:
     * 
     * <pre>
-    *   inflector.upperCamelCase(&quot;active_record&quot;)       #=&gt; &quot;SctiveRecord&quot;
+    *   inflector.upperCamelCase(&quot;active_record&quot;)       #=&gt; &quot;ActiveRecord&quot;
     *   inflector.upperCamelCase(&quot;first_name&quot;)          #=&gt; &quot;FirstName&quot;
     *   inflector.upperCamelCase(&quot;name&quot;)                #=&gt; &quot;Name&quot;
     *   inflector.lowerCamelCase(&quot;the-first_name&quot;,'-')  #=&gt; &quot;TheFirstName&quot;

@@ -1,10 +1,9 @@
 /**
- * Copyright 2014 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2016 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.addon.shell.ui;
 
 import java.util.Set;
@@ -82,15 +81,15 @@ public class DidYouMeanCommandNotFoundListener implements CommandNotFoundListene
     * </p>
     * 
     * <p>
-    * The previous implementation of the Levenshtein distance algorithm was from <a
-    * href="http://www.merriampark.com/ld.htm">http://www.merriampark.com/ld.htm</a>
+    * The previous implementation of the Levenshtein distance algorithm was from
+    * <a href="http://www.merriampark.com/ld.htm">http://www.merriampark.com/ld.htm</a>
     * </p>
     * 
     * <p>
     * Chas Emerick has written an implementation in Java, which avoids an OutOfMemoryError which can occur when my Java
     * implementation is used with very large strings.<br>
-    * This implementation of the Levenshtein distance algorithm is from <a
-    * href="http://www.merriampark.com/ldjava.htm">http://www.merriampark.com/ldjava.htm</a>
+    * This implementation of the Levenshtein distance algorithm is from
+    * <a href="http://www.merriampark.com/ldjava.htm">http://www.merriampark.com/ldjava.htm</a>
     * </p>
     * 
     * <pre>
